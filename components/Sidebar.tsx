@@ -168,6 +168,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
   const imageFileRef = useRef<HTMLInputElement>(null)
   const videoFileRef = useRef<HTMLInputElement>(null)
   const [format, setFormat] = useState<ExportFormat>('png')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (state.global.mediaMode === 'video' && format !== 'mp4' && format !== 'config') setFormat('mp4')
@@ -397,12 +398,12 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
               Export
             </button>
             <button
-              onClick={() => onCopy(format)}
+              onClick={() => { onCopy(format); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
               disabled={format === 'mp4' || format === 'webm'}
               className="flex-1 py-2.5 rounded-[10px] text-[12px] transition-all duration-150 active:scale-[0.97] disabled:opacity-30 disabled:pointer-events-none"
-              style={{ color: 'var(--ui-muted)', background: 'var(--ui-ctrl-bg)' }}
+              style={{ color: copied ? 'var(--ui-accent)' : 'var(--ui-muted)', background: 'var(--ui-ctrl-bg)' }}
             >
-              Copy
+              {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
         )}
