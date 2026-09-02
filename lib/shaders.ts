@@ -102,6 +102,11 @@ export const lineFragmentShader = /* glsl */ `
 
   varying vec2 vUv;
 
+  // Deterministic per-cell hash → [0, 1)
+  float cellHash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
   float luma(vec3 c) {
     return dot(c, vec3(0.299, 0.587, 0.114));
   }
@@ -218,11 +223,47 @@ export const lineFragmentShader = /* glsl */ `
       }
 
     } else {
-      // ── Squares — box SDF ────────────────────────────────────────────
       vec2 p = cellPos - vec2(0.5);
       float r = thickness * 0.45;
-      vec2 q = abs(p) - vec2(r);
-      float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+      float dist;
+
+      if (u_shapeMode == 1) {
+        // ── Squares — box SDF ──────────────────────────────────────────
+        vec2 q = abs(p) - vec2(r);
+        dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+
+      } else {
+        // ── Mixed — hash picks one of 5 shapes per cell ────────────────
+        float h = cellHash(cellCoord) * 5.0;
+
+        if (h < 1.0) {
+          // Square
+          vec2 q = abs(p) - vec2(r);
+          dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+
+        } else if (h < 2.0) {
+          // Diamond
+          dist = abs(p.x) + abs(p.y) - r;
+
+        } else if (h < 3.0) {
+          // Cross / plus
+          float arm = r * 0.35;
+          dist = min(
+            max(abs(p.x) - r, abs(p.y) - arm),
+            max(abs(p.y) - r, abs(p.x) - arm)
+          );
+
+        } else if (h < 4.0) {
+          // Horizontal bar
+          dist = max(abs(p.x) - r, abs(p.y) - r * 0.28);
+
+        } else {
+          // Frame (hollow square)
+          float outer = max(abs(p.x), abs(p.y)) - r;
+          float inner = r * 0.52 - max(abs(p.x), abs(p.y));
+          dist = max(outer, inner);
+        }
+      }
 
       lineMask = 1.0 - smoothstep(-sdfEdge, sdfEdge, dist);
     }

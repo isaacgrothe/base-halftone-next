@@ -215,6 +215,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress, isD
               options={[
                 { label: 'Lines',   value: 'lines'   },
                 { label: 'Squares', value: 'squares' },
+                { label: 'Mixed',   value: 'mixed'   },
               ]}
               value={state.lineRenderer.shapeMode}
               onChange={(v) => setLines('shapeMode', v as AppState['lineRenderer']['shapeMode'])}
