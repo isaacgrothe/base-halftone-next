@@ -17,6 +17,7 @@ export const DEFAULT_STATE: AppState = {
     lineFour: '#0000FF',
   },
   lineRenderer: {
+    shapeMode: 'lines' as const,
     invert: false,
     blankSpots: true,
     contrast: 2.5,

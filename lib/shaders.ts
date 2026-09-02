@@ -98,6 +98,7 @@ export const lineFragmentShader = /* glsl */ `
   uniform float u_capRoundness;     // 0 = flat ends, 1 = fully round caps
   uniform bool u_alpha;             // transparent background (lines only)
   uniform bool u_showUnderlay;      // show source image underneath
+  uniform int u_shapeMode;          // 0=lines, 1=dots, 2=squares, 3=diamonds
 
   varying vec2 vUv;
 
@@ -171,69 +172,72 @@ export const lineFragmentShader = /* glsl */ `
       else lineColor = u_lineColors[3];
     }
 
-    // ── Continuous strip (no gaps) ──────────────────────────────────────
+    // ── Shape mask ──────────────────────────────────────────────────────
     float lineMask = 0.0;
+    float sdfEdge = 0.5 / max(cellCount.x, cellCount.y);
 
-    if (!u_showGaps) {
-      // The axis perpendicular to line direction defines strip width
-      float stripAxis = u_vertical ? cellPos.x : cellPos.y;
-      float halfT = thickness * 0.5;
-      float edge = 0.5 / cellCount.x;  // sub-pixel soft edge
-      lineMask = 1.0 - smoothstep(halfT - edge, halfT + edge, abs(stripAxis - 0.5));
-
-    } else {
-      // ── Segmented (showGaps) with continuity-aware variable height ─────
-      // Adjacent cells sharing the same tier merge — no gap at that boundary.
-      // This produces naturally variable segment heights: isolated cells become
-      // short pills; runs of same-tier cells form long bars.
-      float stripAxis = u_vertical ? cellPos.x : cellPos.y;
-      float segAxis   = u_vertical ? cellPos.y : cellPos.x;
-
-      float halfT = thickness * 0.5;
-      float pixelW = 1.0 / (u_vertical ? u_resolutionPixels.x : u_resolutionPixels.y);
-      float edge = pixelW * 0.5;
-      float dx = abs(stripAxis - 0.5);
-
-      if (thickness < 0.01) {
-        lineMask = 0.0;
+    if (u_shapeMode == 0) {
+      // ── Lines ───────────────────────────────────────────────────────
+      if (!u_showGaps) {
+        float stripAxis = u_vertical ? cellPos.x : cellPos.y;
+        float halfT = thickness * 0.5;
+        float edge = 0.5 / cellCount.x;
+        lineMask = 1.0 - smoothstep(halfT - edge, halfT + edge, abs(stripAxis - 0.5));
       } else {
-        // Check the neighbouring cells along the segment axis.
-        // "High" = next cell in +segAxis direction (higher Y in UV for vertical).
-        // "Low"  = prev cell in -segAxis direction.
-        vec2 adjDir = u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
-        bool connectHigh = (adjacentTier(cellCoord + adjDir, cellCount) == tier);
-        bool connectLow  = (adjacentTier(cellCoord - adjDir, cellCount) == tier);
-
-        // No gap at same-tier boundaries → segments merge into one continuous bar.
-        // Gap + cap only at tier-change boundaries.
-        float gapFrac = 0.05;
-
-        float segStart = connectLow  ? 0.0 : gapFrac;
-        float segEnd   = connectHigh ? 1.0 : 1.0 - gapFrac;
-        float segLen   = segEnd - segStart;
-        float halfSeg  = segLen * 0.5;
-        float ey = segAxis - (segStart + segEnd) * 0.5;
-
-        if (u_capRoundness < 0.01) {
-          // Flat ends
-          float segMask = step(segStart, segAxis) * step(segAxis, segEnd);
-          float stripMask = 1.0 - smoothstep(halfT - edge, halfT + edge, dx);
-          lineMask = stripMask * segMask;
+        float stripAxis = u_vertical ? cellPos.x : cellPos.y;
+        float segAxis   = u_vertical ? cellPos.y : cellPos.x;
+        float halfT = thickness * 0.5;
+        float pixelW = 1.0 / (u_vertical ? u_resolutionPixels.x : u_resolutionPixels.y);
+        float edge = pixelW * 0.5;
+        float dx = abs(stripAxis - 0.5);
+        if (thickness < 0.01) {
+          lineMask = 0.0;
         } else {
-          // Rounded caps only at open (tier-change) ends; flat at connected ends.
-          float crLow  = connectLow  ? 0.0 : u_capRoundness * halfT;
-          float crHigh = connectHigh ? 0.0 : u_capRoundness * halfT;
-          float cr = (ey < 0.0) ? crLow : crHigh;
-
-          // Correct signed-distance for a rounded rectangle.
-          // The min(max(...),0) term makes dist negative for interior pixels,
-          // which is essential — without it interior pixels get dist=0 and
-          // render at half-opacity via smoothstep.
-          vec2 q = vec2(dx - (halfT - cr), abs(ey) - (halfSeg - cr));
-          float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - cr;
-          lineMask = 1.0 - smoothstep(-edge, edge, dist);
+          vec2 adjDir = u_vertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0);
+          bool connectHigh = (adjacentTier(cellCoord + adjDir, cellCount) == tier);
+          bool connectLow  = (adjacentTier(cellCoord - adjDir, cellCount) == tier);
+          float gapFrac = 0.05;
+          float segStart = connectLow  ? 0.0 : gapFrac;
+          float segEnd   = connectHigh ? 1.0 : 1.0 - gapFrac;
+          float segLen   = segEnd - segStart;
+          float halfSeg  = segLen * 0.5;
+          float ey = segAxis - (segStart + segEnd) * 0.5;
+          if (u_capRoundness < 0.01) {
+            float segMask = step(segStart, segAxis) * step(segAxis, segEnd);
+            float stripMask = 1.0 - smoothstep(halfT - edge, halfT + edge, dx);
+            lineMask = stripMask * segMask;
+          } else {
+            float crLow  = connectLow  ? 0.0 : u_capRoundness * halfT;
+            float crHigh = connectHigh ? 0.0 : u_capRoundness * halfT;
+            float cr = (ey < 0.0) ? crLow : crHigh;
+            vec2 q = vec2(dx - (halfT - cr), abs(ey) - (halfSeg - cr));
+            float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - cr;
+            lineMask = 1.0 - smoothstep(-edge, edge, dist);
+          }
         }
       }
+
+    } else {
+      // ── Cell-based SDF shapes (dots, squares, diamonds) ─────────────
+      vec2 p = cellPos - vec2(0.5); // centered in [-0.5, 0.5]
+      float r = thickness * 0.45;
+      float dist;
+
+      if (u_shapeMode == 1) {
+        // Dots — circle SDF
+        dist = length(p) - r;
+
+      } else if (u_shapeMode == 2) {
+        // Squares — box SDF
+        vec2 q = abs(p) - vec2(r);
+        dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+
+      } else {
+        // Diamonds — L1 distance (rotated square)
+        dist = abs(p.x) + abs(p.y) - r;
+      }
+
+      lineMask = 1.0 - smoothstep(-sdfEdge, sdfEdge, dist);
     }
 
     // ── Background / underlay ────────────────────────────────────────────

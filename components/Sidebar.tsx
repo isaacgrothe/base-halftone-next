@@ -210,13 +210,27 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress, isD
         </AccordionSection>
 
         <AccordionSection title="Lines" isDark={isDark}>
-          <PanelSection label="Direction">
+          <PanelSection label="Shape">
             <SegmentedControl
-              options={[{ label: 'Vertical', value: 'true' }, { label: 'Horizontal', value: 'false' }]}
-              value={String(state.lineRenderer.vertical)}
-              onChange={(v) => setLines('vertical', v === 'true')}
+              options={[
+                { label: 'Lines',    value: 'lines'    },
+                { label: 'Dots',     value: 'dots'     },
+                { label: 'Squares',  value: 'squares'  },
+                { label: 'Diamonds', value: 'diamonds' },
+              ]}
+              value={state.lineRenderer.shapeMode}
+              onChange={(v) => setLines('shapeMode', v as AppState['lineRenderer']['shapeMode'])}
             />
           </PanelSection>
+          {state.lineRenderer.shapeMode === 'lines' && (
+            <PanelSection label="Direction">
+              <SegmentedControl
+                options={[{ label: 'Vertical', value: 'true' }, { label: 'Horizontal', value: 'false' }]}
+                value={String(state.lineRenderer.vertical)}
+                onChange={(v) => setLines('vertical', v === 'true')}
+              />
+            </PanelSection>
+          )}
           <Row label="Resolution">
             <Slider value={state.lineRenderer.resolution} min={0.005} max={0.25} step={0.001} onChange={(v) => setLines('resolution', v)} />
           </Row>

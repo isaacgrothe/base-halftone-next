@@ -1,4 +1,5 @@
 export type AspectRatioMode = 'auto' | '16:9' | '9:16' | '1:1' | 'fullscreen'
+export type ShapeMode = 'lines' | 'dots' | 'squares' | 'diamonds'
 export type HeroMode = 'off' | 'light' | 'dark'
 export type MediaMode = 'image' | 'video'
 
@@ -20,6 +21,7 @@ export interface PaletteConfig {
 }
 
 export interface LineRendererConfig {
+  shapeMode: ShapeMode
   invert: boolean
   blankSpots: boolean
   contrast: number
