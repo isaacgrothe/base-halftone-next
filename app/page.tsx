@@ -29,6 +29,7 @@ export default function Home() {
   const [sourceAspect, setSourceAspect] = useState<number | null>(null)
   const [videoDuration, setVideoDuration] = useState<number>(0)
   const [exportProgress, setExportProgress] = useState<number | null>(null)
+  const [isDark, setIsDark] = useState(false)
   const glRef = useRef<THREE.WebGLRenderer | null>(null)
   const imageSrcRef = useRef(DEFAULT_STATE.image.src)
   const videoSrcRef = useRef(DEFAULT_STATE.video.src)
@@ -138,7 +139,10 @@ export default function Home() {
   const bgColor = resolveColor(state.palette.backgroundColor)
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-black">
+    <main
+      className="relative w-screen h-screen overflow-hidden"
+      style={{ background: isDark ? '#141414' : '#EFEFEF', transition: 'background 0.2s ease' }}
+    >
 
       {/* Canvas area — inset from the right sidebar */}
       <div
@@ -152,8 +156,11 @@ export default function Home() {
             borderRadius: state.global.outputCornerRadiusPx,
             overflow: 'hidden',
             ...(state.lineRenderer.alpha ? {
-              backgroundColor: '#f0f0f0',
-              backgroundImage: [
+              backgroundColor: isDark ? '#222222' : '#f0f0f0',
+              backgroundImage: isDark ? [
+                'linear-gradient(45deg, #2e2e2e 25%, transparent 25%, transparent 75%, #2e2e2e 75%)',
+                'linear-gradient(45deg, #2e2e2e 25%, transparent 25%, transparent 75%, #2e2e2e 75%)',
+              ].join(', ') : [
                 'linear-gradient(45deg, #d8d8d8 25%, transparent 25%, transparent 75%, #d8d8d8 75%)',
                 'linear-gradient(45deg, #d8d8d8 25%, transparent 25%, transparent 75%, #d8d8d8 75%)',
               ].join(', '),
@@ -182,6 +189,8 @@ export default function Home() {
         onExport={handleExport}
         onCopy={handleCopy}
         exportProgress={exportProgress}
+        isDark={isDark}
+        onToggleDark={() => setIsDark((d) => !d)}
       />
 
     </main>

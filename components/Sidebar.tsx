@@ -1,8 +1,7 @@
 'use client'
-import { useRef, useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect, ReactNode } from 'react'
 import {
-  PanelSection, Row, Slider, Toggle, SegmentedControl,
-  ColorSwatch, NumberInput, Select, Divider,
+  PanelSection, Row, Slider, Toggle, SegmentedControl, Select,
 } from './ui'
 import { resolveColor, COLOR_PRESETS } from '@/lib/spectrum'
 import type { AppState } from '@/lib/types'
@@ -15,7 +14,45 @@ interface Props {
   onExport: (format: ExportFormat) => void
   onCopy: (format: ExportFormat) => void
   exportProgress: number | null
+  isDark: boolean
+  onToggleDark: () => void
 }
+
+const LIGHT_VARS = {
+  '--ui-label':             'rgba(0,0,0,0.4)',
+  '--ui-text':              'rgba(0,0,0,0.75)',
+  '--ui-muted':             'rgba(0,0,0,0.4)',
+  '--ui-ctrl-bg':           'rgba(0,0,0,0.05)',
+  '--ui-ctrl-border':       'rgba(0,0,0,0.0)',
+  '--ui-toggle-off':        'rgba(0,0,0,0.15)',
+  '--ui-seg-bg':            'rgba(0,0,0,0.06)',
+  '--ui-seg-border':        'rgba(0,0,0,0.0)',
+  '--ui-seg-active-bg':     '#ffffff',
+  '--ui-seg-active-text':   'rgba(0,0,0,0.85)',
+  '--ui-seg-inactive-text': 'rgba(0,0,0,0.4)',
+  '--ui-swatch-border':     'rgba(0,0,0,0.10)',
+  '--ui-divider':           'rgba(0,0,0,0.07)',
+  '--ui-slider-track':      'rgba(0,0,0,0.10)',
+  '--ui-slider-thumb':      '#0000FF',
+} as const
+
+const DARK_VARS = {
+  '--ui-label':             'rgba(255,255,255,0.35)',
+  '--ui-text':              'rgba(255,255,255,0.75)',
+  '--ui-muted':             'rgba(255,255,255,0.35)',
+  '--ui-ctrl-bg':           'rgba(255,255,255,0.07)',
+  '--ui-ctrl-border':       'rgba(255,255,255,0.0)',
+  '--ui-toggle-off':        'rgba(255,255,255,0.18)',
+  '--ui-seg-bg':            'rgba(255,255,255,0.07)',
+  '--ui-seg-border':        'rgba(255,255,255,0.0)',
+  '--ui-seg-active-bg':     'rgba(255,255,255,0.15)',
+  '--ui-seg-active-text':   'rgba(255,255,255,0.9)',
+  '--ui-seg-inactive-text': 'rgba(255,255,255,0.35)',
+  '--ui-swatch-border':     'rgba(255,255,255,0.12)',
+  '--ui-divider':           'rgba(255,255,255,0.07)',
+  '--ui-slider-track':      'rgba(255,255,255,0.12)',
+  '--ui-slider-thumb':      '#ffffff',
+} as const
 
 const ASPECT_OPTIONS = [
   { label: 'Auto',  value: 'auto'       as const },
@@ -25,13 +62,61 @@ const ASPECT_OPTIONS = [
   { label: 'Full',  value: 'fullscreen' as const },
 ]
 
+function LargeSwatch({ color, onChange }: { color: string; onChange: (v: string) => void }) {
+  return (
+    <label className="relative cursor-pointer">
+      <div
+        className="w-full aspect-square rounded-[12px] transition-transform duration-150 active:scale-[0.93]"
+        style={{ backgroundColor: color, border: '1.5px solid var(--ui-swatch-border)' }}
+      />
+      <input
+        type="color"
+        value={color.startsWith('#') ? color : '#266eff'}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+      />
+    </label>
+  )
+}
 
-export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: Props) {
+function AccordionSection({
+  title,
+  children,
+  defaultOpen = false,
+  isDark,
+}: {
+  title: string
+  children: ReactNode
+  defaultOpen?: boolean
+  isDark: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full text-left py-4 text-[15px] transition-opacity duration-100 active:opacity-50"
+        style={{ color: isDark ? 'rgba(255,255,255,0.9)' : '#000000' }}
+      >
+        {title}
+      </button>
+      {open && (
+        <div
+          className="rounded-[16px] p-4 flex flex-col gap-3.5 mb-1"
+          style={{ background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.6)' }}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function Sidebar({ state, onChange, onExport, onCopy, exportProgress, isDark, onToggleDark }: Props) {
   const imageFileRef = useRef<HTMLInputElement>(null)
   const videoFileRef = useRef<HTMLInputElement>(null)
   const [format, setFormat] = useState<ExportFormat>('png')
 
-  // Sync format when switching media modes
   useEffect(() => {
     if (state.global.mediaMode === 'video' && format !== 'mp4' && format !== 'config') setFormat('mp4')
     if (state.global.mediaMode === 'image' && (format === 'mp4' || format === 'webm')) setFormat('png')
@@ -48,69 +133,84 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
   const setVideo   = <K extends keyof AppState['video']>(k: K, v: AppState['video'][K]) =>
     onChange('video', { ...state.video, [k]: v })
 
+  const themeVars = isDark ? DARK_VARS : LIGHT_VARS
+
   return (
     <aside
       className="absolute right-0 top-0 h-full z-20 flex flex-col overflow-hidden"
       style={{
         width: 272,
-        background: 'rgba(255, 255, 255, 0.97)',
-        backdropFilter: 'blur(20px)',
-        borderLeft: '1px solid rgba(0,0,0,0.07)',
-      }}
+        background: isDark ? '#1A1A1A' : '#EBEBEB',
+        transition: 'background 0.2s ease',
+        ...themeVars,
+      } as React.CSSProperties}
     >
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 flex flex-col gap-5">
+      {/* Header */}
+      <div className="flex items-center justify-end px-4 pt-4 pb-1 shrink-0">
+        <button
+          onClick={onToggleDark}
+          className="w-5 h-5 rounded-full transition-all duration-150 active:scale-[0.9]"
+          style={{ background: isDark ? '#ffffff' : '#000000' }}
+          title={isDark ? 'Light mode' : 'Dark mode'}
+        />
+      </div>
 
-        {/* ── Source ── */}
-        <PanelSection label="Source">
-          <SegmentedControl
-            options={[{ label: 'Image', value: 'image' as const }, { label: 'Video', value: 'video' as const }]}
-            value={state.global.mediaMode}
-            onChange={(v) => setGlobal('mediaMode', v)}
-          />
+      {/* Scrollable accordion sections */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 flex flex-col">
 
-          {state.global.mediaMode === 'image' ? (
-            <>
-              <button
-                onClick={() => imageFileRef.current?.click()}
-                className="w-full py-2 rounded-[6px] text-[12px] text-black/45 hover:text-black/70 border border-black/10 hover:border-black/20 transition-all duration-150 active:scale-[0.97]"
-              >
-                Upload image
-              </button>
-              <input ref={imageFileRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setImage('src', URL.createObjectURL(f))
-                }}
-              />
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => videoFileRef.current?.click()}
-                className="w-full py-2 rounded-[6px] text-[12px] text-black/45 hover:text-black/70 border border-black/10 hover:border-black/20 transition-all duration-150 active:scale-[0.97]"
-              >
-                Upload video
-              </button>
-              <input ref={videoFileRef} type="file" accept="video/*" className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) setVideo('src', URL.createObjectURL(f))
-                }}
-              />
-            </>
-          )}
-        </PanelSection>
+        <AccordionSection title="Source" defaultOpen isDark={isDark}>
+          <PanelSection label="Type">
+            <SegmentedControl
+              options={[{ label: 'Image', value: 'image' as const }, { label: 'Video', value: 'video' as const }]}
+              value={state.global.mediaMode}
+              onChange={(v) => setGlobal('mediaMode', v)}
+            />
+          </PanelSection>
+          <PanelSection label="Input">
+            {state.global.mediaMode === 'image' ? (
+              <>
+                <button
+                  onClick={() => imageFileRef.current?.click()}
+                  className="w-full py-3 rounded-[10px] text-[13px] transition-all duration-150 active:scale-[0.98]"
+                  style={{ color: 'var(--ui-muted)', background: 'var(--ui-ctrl-bg)' }}
+                >
+                  ↑  Choose file
+                </button>
+                <input ref={imageFileRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) setImage('src', URL.createObjectURL(f))
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => videoFileRef.current?.click()}
+                  className="w-full py-3 rounded-[10px] text-[13px] transition-all duration-150 active:scale-[0.98]"
+                  style={{ color: 'var(--ui-muted)', background: 'var(--ui-ctrl-bg)' }}
+                >
+                  ↑  Choose file
+                </button>
+                <input ref={videoFileRef} type="file" accept="video/*" className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) setVideo('src', URL.createObjectURL(f))
+                  }}
+                />
+              </>
+            )}
+          </PanelSection>
+        </AccordionSection>
 
-        <Divider />
-
-        {/* ── Lines ── */}
-        <PanelSection label="Lines">
-          <SegmentedControl
-            options={[{ label: 'Vertical', value: 'true' }, { label: 'Horizontal', value: 'false' }]}
-            value={String(state.lineRenderer.vertical)}
-            onChange={(v) => setLines('vertical', v === 'true')}
-          />
+        <AccordionSection title="Lines" isDark={isDark}>
+          <PanelSection label="Direction">
+            <SegmentedControl
+              options={[{ label: 'Vertical', value: 'true' }, { label: 'Horizontal', value: 'false' }]}
+              value={String(state.lineRenderer.vertical)}
+              onChange={(v) => setLines('vertical', v === 'true')}
+            />
+          </PanelSection>
           <Row label="Resolution">
             <Slider value={state.lineRenderer.resolution} min={0.005} max={0.25} step={0.001} onChange={(v) => setLines('resolution', v)} />
           </Row>
@@ -124,12 +224,9 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
               onChange={(v) => state.global.mediaMode === 'image' ? setImage('blurPx', v) : setVideo('blurPx', v)}
             />
           </Row>
-        </PanelSection>
+        </AccordionSection>
 
-        <Divider />
-
-        {/* ── Options ── */}
-        <PanelSection label="Options">
+        <AccordionSection title="Options" isDark={isDark}>
           <Row label="Invert">
             <Toggle checked={state.lineRenderer.invert} onChange={(v) => setLines('invert', v)} />
           </Row>
@@ -148,12 +245,9 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
           <Row label="Show underlay">
             <Toggle checked={state.lineRenderer.showUnderlay} onChange={(v) => setLines('showUnderlay', v)} />
           </Row>
-        </PanelSection>
+        </AccordionSection>
 
-        <Divider />
-
-        {/* ── Colors ── */}
-        <PanelSection label="Colors">
+        <AccordionSection title="Colors" isDark={isDark}>
           <Select
             value={COLOR_PRESETS.find((p) => p.palette.backgroundColor === state.palette.backgroundColor)?.label ?? 'Custom'}
             options={COLOR_PRESETS.map((p) => ({ label: p.label, value: p.label }))}
@@ -166,51 +260,39 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             }}
           />
 
-          {/* Background + Foreground */}
-          <div className="flex gap-2.5 mt-0.5">
-            <div className="flex flex-col items-center gap-1.5">
-              <ColorSwatch color={resolveColor(state.palette.backgroundColor)} onChange={(v) => setPalette('backgroundColor', v)} />
-              <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.35)' }}>BG</span>
-            </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <ColorSwatch color={resolveColor(state.palette.foregroundColor)} onChange={(v) => setPalette('foregroundColor', v)} />
-              <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.35)' }}>FG</span>
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-medium tracking-[0.08em] uppercase" style={{ color: 'var(--ui-label)' }}>Mono</span>
+            <div className="grid grid-cols-4 gap-2">
+              <LargeSwatch color={resolveColor(state.palette.backgroundColor)} onChange={(v) => setPalette('backgroundColor', v)} />
+              <LargeSwatch color={resolveColor(state.palette.foregroundColor)} onChange={(v) => setPalette('foregroundColor', v)} />
             </div>
           </div>
 
-          {/* Tier colors */}
-          <div className="flex gap-2.5 mt-0.5">
-            {([
-              ['lineOne',   '1'] as const,
-              ['lineTwo',   '2'] as const,
-              ['lineThree', '3'] as const,
-              ['lineFour',  '4'] as const,
-            ] as const).map(([key, label]) => (
-              <div key={key} className="flex flex-col items-center gap-1.5">
-                <ColorSwatch
-                  color={resolveColor(state.palette[key])}
-                  onChange={(v) => setPalette(key, v)}
-                />
-                <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.35)' }}>{label}</span>
-              </div>
-            ))}
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-medium tracking-[0.08em] uppercase" style={{ color: 'var(--ui-label)' }}>Multi</span>
+            <div className="grid grid-cols-4 gap-2">
+              {(['lineOne', 'lineTwo', 'lineThree', 'lineFour'] as const).map((key) => (
+                <LargeSwatch key={key} color={resolveColor(state.palette[key])} onChange={(v) => setPalette(key, v)} />
+              ))}
+            </div>
           </div>
-        </PanelSection>
+        </AccordionSection>
 
-        <Divider />
-
-        {/* ── Canvas ── */}
-        <PanelSection label="Canvas">
-          <SegmentedControl options={ASPECT_OPTIONS} value={state.global.aspectRatioMode} onChange={(v) => setGlobal('aspectRatioMode', v)} />
-
-        </PanelSection>
+        <AccordionSection title="Canvas" isDark={isDark}>
+          <SegmentedControl
+            options={ASPECT_OPTIONS}
+            value={state.global.aspectRatioMode}
+            onChange={(v) => setGlobal('aspectRatioMode', v)}
+          />
+        </AccordionSection>
 
       </div>
 
-      {/* ── Footer / Export ── */}
-      <div className="px-4 py-4 flex flex-col gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
-
-        {/* Format selector */}
+      {/* Footer / Export */}
+      <div
+        className="px-4 py-4 flex flex-col gap-2"
+        style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.07)' }}
+      >
         <Select
           value={format}
           options={
@@ -221,16 +303,15 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
           onChange={(v) => setFormat(v as ExportFormat)}
         />
 
-        {/* MP4 progress bar */}
         {(format === 'mp4' || format === 'webm') && exportProgress !== null ? (
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between text-[12px]" style={{ color: 'rgba(0,0,0,0.4)' }}>
+            <div className="flex justify-between text-[12px]" style={{ color: 'var(--ui-muted)' }}>
               <span>Exporting…</span>
               <span>{Math.round(exportProgress * 100)}%</span>
             </div>
-            <div className="w-full rounded-[6px] h-1" style={{ background: 'rgba(0,0,0,0.08)' }}>
+            <div className="w-full rounded-full h-1" style={{ background: 'var(--ui-slider-track)' }}>
               <div
-                className="h-1 rounded-[6px] transition-all duration-150"
+                className="h-1 rounded-full transition-all duration-150"
                 style={{ width: `${exportProgress * 100}%`, background: '#0000FF' }}
               />
             </div>
@@ -239,7 +320,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
           <div className="flex gap-2">
             <button
               onClick={() => onExport(format)}
-              className="flex-1 py-2.5 rounded-[6px] text-[13px] font-medium text-white transition-all duration-150 active:scale-[0.97]"
+              className="flex-1 py-2.5 rounded-[10px] text-[13px] font-medium text-white transition-all duration-150 active:scale-[0.97]"
               style={{ background: '#0000FF' }}
             >
               Export
@@ -247,7 +328,8 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             <button
               onClick={() => onCopy(format)}
               disabled={format === 'mp4' || format === 'webm'}
-              className="flex-1 py-2.5 rounded-[6px] text-[13px] text-black/45 hover:text-black/70 border border-black/10 hover:border-black/20 transition-all duration-150 active:scale-[0.97] disabled:opacity-30 disabled:pointer-events-none"
+              className="flex-1 py-2.5 rounded-[10px] text-[13px] transition-all duration-150 active:scale-[0.97] disabled:opacity-30 disabled:pointer-events-none"
+              style={{ color: 'var(--ui-muted)', background: 'var(--ui-ctrl-bg)' }}
             >
               Copy
             </button>

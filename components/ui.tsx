@@ -1,5 +1,7 @@
 'use client'
 // Minimal shared UI primitives — Base design system aesthetic
+// Colors are driven by CSS custom properties set on the sidebar container,
+// so light/dark mode is a single variable swap at the root.
 
 import { ReactNode, useState, useEffect } from 'react'
 
@@ -7,7 +9,7 @@ export function PanelSection({ label, children }: { label?: string; children: Re
   return (
     <div className="flex flex-col gap-2.5">
       {label && (
-        <div className="text-[11px] font-medium tracking-wide" style={{ color: 'rgba(0,0,0,0.38)' }}>
+        <div className="text-[11px] font-medium tracking-wide" style={{ color: 'var(--ui-label)' }}>
           {label}
         </div>
       )}
@@ -20,7 +22,7 @@ export function Row({ children, label }: { children: ReactNode; label?: string }
   return (
     <div className="flex items-center justify-between gap-3 min-h-[30px]">
       {label && (
-        <span className="text-[13px] shrink-0 w-28" style={{ color: 'rgba(0,0,0,0.55)' }}>
+        <span className="text-[13px] shrink-0 w-28" style={{ color: 'var(--ui-text)' }}>
           {label}
         </span>
       )}
@@ -93,8 +95,10 @@ export function Slider({
             onChange(next)
           }
         }}
-        className="text-[12px] w-9 text-right tabular-nums shrink-0 bg-transparent border-b border-transparent focus:border-black/25 outline-none transition-colors duration-150 cursor-text"
-        style={{ color: 'rgba(0,0,0,0.45)' }}
+        className="text-[12px] w-9 text-right tabular-nums shrink-0 bg-transparent border-b border-transparent outline-none transition-colors duration-150 cursor-text"
+        style={{ color: 'var(--ui-muted)', borderBottomColor: 'transparent' }}
+        onFocusCapture={e => (e.currentTarget.style.borderBottomColor = 'var(--ui-ctrl-border)')}
+        onBlurCapture={e => (e.currentTarget.style.borderBottomColor = 'transparent')}
       />
     </div>
   )
@@ -118,7 +122,7 @@ export function Toggle({
           width: 36,
           height: 20,
           borderRadius: 5,
-          background: checked ? '#0000FF' : 'rgba(0,0,0,0.12)',
+          background: checked ? '#0000FF' : 'var(--ui-toggle-off)',
           transition: 'background 0.15s ease-out',
           flexShrink: 0,
         }}
@@ -139,7 +143,7 @@ export function Toggle({
         />
       </div>
       {label && (
-        <span className="text-[13px]" style={{ color: 'rgba(0,0,0,0.55)' }}>
+        <span className="text-[13px]" style={{ color: 'var(--ui-text)' }}>
           {label}
         </span>
       )}
@@ -160,20 +164,20 @@ export function SegmentedControl<T extends string>({
     <div
       className="flex gap-0.5 p-0.5 rounded-[6px] text-[12px]"
       style={{
-        background: 'rgba(0,0,0,0.06)',
-        border: '1px solid rgba(0,0,0,0.08)',
+        background: 'var(--ui-seg-bg)',
+        border: '1px solid var(--ui-seg-border)',
       }}
     >
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`flex-1 py-1.5 px-2 text-center rounded-[5px] transition-all duration-150 active:scale-[0.96] ${
+          className="flex-1 py-1.5 px-2 text-center rounded-[5px] transition-all duration-150 active:scale-[0.96]"
+          style={
             value === opt.value
-              ? 'bg-white text-black font-medium shadow-sm'
-              : 'hover:text-black'
-          }`}
-          style={value === opt.value ? {} : { color: 'rgba(0,0,0,0.42)' }}
+              ? { background: 'var(--ui-seg-active-bg)', color: 'var(--ui-seg-active-text)', fontWeight: 500 }
+              : { color: 'var(--ui-seg-inactive-text)' }
+          }
         >
           {opt.label}
         </button>
@@ -194,7 +198,7 @@ export function ColorSwatch({
   return (
     <div className="flex items-center gap-2">
       {label && (
-        <span className="text-[13px] flex-1" style={{ color: 'rgba(0,0,0,0.55)' }}>
+        <span className="text-[13px] flex-1" style={{ color: 'var(--ui-text)' }}>
           {label}
         </span>
       )}
@@ -203,7 +207,7 @@ export function ColorSwatch({
           className="w-8 h-8 rounded-[6px] transition-transform duration-150 active:scale-[0.9]"
           style={{
             backgroundColor: color,
-            border: '1.5px solid rgba(0,0,0,0.12)',
+            border: '1.5px solid var(--ui-swatch-border)',
           }}
         />
         <input
@@ -238,10 +242,11 @@ export function NumberInput({
       max={max}
       step={step}
       onChange={(e) => onChange(parseFloat(e.target.value))}
-      className="w-20 text-black text-[12px] tabular-nums rounded-[6px] px-3 py-1.5 text-right border focus:outline-none transition-colors"
+      className="w-20 text-[12px] tabular-nums rounded-[6px] px-3 py-1.5 text-right border focus:outline-none transition-colors"
       style={{
-        background: 'rgba(0,0,0,0.05)',
-        borderColor: 'rgba(0,0,0,0.1)',
+        background: 'var(--ui-ctrl-bg)',
+        borderColor: 'var(--ui-ctrl-border)',
+        color: 'var(--ui-text)',
       }}
     />
   )
@@ -260,10 +265,11 @@ export function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-black text-[12px] rounded-[6px] px-3 py-1.5 border focus:outline-none transition-colors flex-1 appearance-none"
+      className="text-[12px] rounded-[6px] px-3 py-1.5 border focus:outline-none transition-colors flex-1 appearance-none"
       style={{
-        background: 'rgba(0,0,0,0.05)',
-        borderColor: 'rgba(0,0,0,0.1)',
+        background: 'var(--ui-ctrl-bg)',
+        borderColor: 'var(--ui-ctrl-border)',
+        color: 'var(--ui-text)',
       }}
     >
       {options.map((o) => (
@@ -276,5 +282,5 @@ export function Select({
 }
 
 export function Divider() {
-  return <div className="h-px my-0.5" style={{ background: 'rgba(0,0,0,0.07)' }} />
+  return <div className="h-px my-0.5" style={{ background: 'var(--ui-divider)' }} />
 }
