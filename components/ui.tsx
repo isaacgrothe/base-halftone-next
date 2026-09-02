@@ -7,7 +7,7 @@ export function PanelSection({ label, children }: { label?: string; children: Re
   return (
     <div className="flex flex-col gap-2.5">
       {label && (
-        <div className="text-[11px] font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        <div className="text-[11px] font-medium tracking-wide" style={{ color: 'rgba(0,0,0,0.38)' }}>
           {label}
         </div>
       )}
@@ -20,7 +20,7 @@ export function Row({ children, label }: { children: ReactNode; label?: string }
   return (
     <div className="flex items-center justify-between gap-3 min-h-[30px]">
       {label && (
-        <span className="text-[13px] shrink-0 w-28" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <span className="text-[13px] shrink-0 w-28" style={{ color: 'rgba(0,0,0,0.55)' }}>
           {label}
         </span>
       )}
@@ -93,8 +93,8 @@ export function Slider({
             onChange(next)
           }
         }}
-        className="text-[12px] w-9 text-right tabular-nums shrink-0 bg-transparent border-b border-transparent focus:border-white/30 outline-none transition-colors duration-150 cursor-text"
-        style={{ color: 'rgba(255,255,255,0.45)' }}
+        className="text-[12px] w-9 text-right tabular-nums shrink-0 bg-transparent border-b border-transparent focus:border-black/25 outline-none transition-colors duration-150 cursor-text"
+        style={{ color: 'rgba(0,0,0,0.45)' }}
       />
     </div>
   )
@@ -118,7 +118,7 @@ export function Toggle({
           width: 36,
           height: 20,
           borderRadius: 5,
-          background: checked ? '#0000FF' : 'rgba(255,255,255,0.14)',
+          background: checked ? '#0000FF' : 'rgba(0,0,0,0.12)',
           transition: 'background 0.15s ease-out',
           flexShrink: 0,
         }}
@@ -134,11 +134,12 @@ export function Toggle({
             background: 'white',
             transition: 'transform 0.15s ease-out',
             transform: checked ? 'translateX(16px)' : 'translateX(0)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
           }}
         />
       </div>
       {label && (
-        <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <span className="text-[13px]" style={{ color: 'rgba(0,0,0,0.55)' }}>
           {label}
         </span>
       )}
@@ -159,8 +160,8 @@ export function SegmentedControl<T extends string>({
     <div
       className="flex gap-0.5 p-0.5 rounded-[6px] text-[12px]"
       style={{
-        background: 'rgba(255,255,255,0.07)',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: 'rgba(0,0,0,0.06)',
+        border: '1px solid rgba(0,0,0,0.08)',
       }}
     >
       {options.map((opt) => (
@@ -169,10 +170,10 @@ export function SegmentedControl<T extends string>({
           onClick={() => onChange(opt.value)}
           className={`flex-1 py-1.5 px-2 text-center rounded-[5px] transition-all duration-150 active:scale-[0.96] ${
             value === opt.value
-              ? 'bg-white text-black font-medium'
-              : 'hover:text-white'
+              ? 'bg-white text-black font-medium shadow-sm'
+              : 'hover:text-black'
           }`}
-          style={value === opt.value ? {} : { color: 'rgba(255,255,255,0.45)' }}
+          style={value === opt.value ? {} : { color: 'rgba(0,0,0,0.42)' }}
         >
           {opt.label}
         </button>
@@ -193,7 +194,7 @@ export function ColorSwatch({
   return (
     <div className="flex items-center gap-2">
       {label && (
-        <span className="text-[13px] flex-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
+        <span className="text-[13px] flex-1" style={{ color: 'rgba(0,0,0,0.55)' }}>
           {label}
         </span>
       )}
@@ -202,7 +203,7 @@ export function ColorSwatch({
           className="w-8 h-8 rounded-[6px] transition-transform duration-150 active:scale-[0.9]"
           style={{
             backgroundColor: color,
-            border: '1.5px solid rgba(255,255,255,0.18)',
+            border: '1.5px solid rgba(0,0,0,0.12)',
           }}
         />
         <input
@@ -237,10 +238,10 @@ export function NumberInput({
       max={max}
       step={step}
       onChange={(e) => onChange(parseFloat(e.target.value))}
-      className="w-20 text-white text-[12px] tabular-nums rounded-[6px] px-3 py-1.5 text-right border focus:outline-none transition-colors"
+      className="w-20 text-black text-[12px] tabular-nums rounded-[6px] px-3 py-1.5 text-right border focus:outline-none transition-colors"
       style={{
-        background: 'rgba(255,255,255,0.07)',
-        borderColor: 'rgba(255,255,255,0.1)',
+        background: 'rgba(0,0,0,0.05)',
+        borderColor: 'rgba(0,0,0,0.1)',
       }}
     />
   )
@@ -259,14 +260,14 @@ export function Select({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-white text-[12px] rounded-[6px] px-3 py-1.5 border focus:outline-none transition-colors flex-1 appearance-none"
+      className="text-black text-[12px] rounded-[6px] px-3 py-1.5 border focus:outline-none transition-colors flex-1 appearance-none"
       style={{
-        background: 'rgba(255,255,255,0.07)',
-        borderColor: 'rgba(255,255,255,0.1)',
+        background: 'rgba(0,0,0,0.05)',
+        borderColor: 'rgba(0,0,0,0.1)',
       }}
     >
       {options.map((o) => (
-        <option key={o.value} value={o.value} className="bg-gray-900">
+        <option key={o.value} value={o.value}>
           {o.label}
         </option>
       ))}
@@ -275,5 +276,5 @@ export function Select({
 }
 
 export function Divider() {
-  return <div className="h-px my-0.5" style={{ background: 'rgba(255,255,255,0.07)' }} />
+  return <div className="h-px my-0.5" style={{ background: 'rgba(0,0,0,0.07)' }} />
 }

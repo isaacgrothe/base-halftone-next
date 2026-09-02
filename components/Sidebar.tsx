@@ -53,9 +53,9 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
       className="absolute right-0 top-0 h-full z-20 flex flex-col overflow-hidden"
       style={{
         width: 272,
-        background: 'rgba(10, 10, 14, 0.94)',
+        background: 'rgba(255, 255, 255, 0.97)',
         backdropFilter: 'blur(20px)',
-        borderLeft: '1px solid rgba(255,255,255,0.06)',
+        borderLeft: '1px solid rgba(0,0,0,0.07)',
       }}
     >
       {/* Scrollable body */}
@@ -73,7 +73,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             <>
               <button
                 onClick={() => imageFileRef.current?.click()}
-                className="w-full py-2 rounded-[6px] text-[12px] text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 transition-all duration-150 active:scale-[0.97]"
+                className="w-full py-2 rounded-[6px] text-[12px] text-black/45 hover:text-black/70 border border-black/10 hover:border-black/20 transition-all duration-150 active:scale-[0.97]"
               >
                 Upload image
               </button>
@@ -88,7 +88,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             <>
               <button
                 onClick={() => videoFileRef.current?.click()}
-                className="w-full py-2 rounded-[6px] text-[12px] text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 transition-all duration-150 active:scale-[0.97]"
+                className="w-full py-2 rounded-[6px] text-[12px] text-black/45 hover:text-black/70 border border-black/10 hover:border-black/20 transition-all duration-150 active:scale-[0.97]"
               >
                 Upload video
               </button>
@@ -170,11 +170,11 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
           <div className="flex gap-2.5 mt-0.5">
             <div className="flex flex-col items-center gap-1.5">
               <ColorSwatch color={resolveColor(state.palette.backgroundColor)} onChange={(v) => setPalette('backgroundColor', v)} />
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>BG</span>
+              <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.35)' }}>BG</span>
             </div>
             <div className="flex flex-col items-center gap-1.5">
               <ColorSwatch color={resolveColor(state.palette.foregroundColor)} onChange={(v) => setPalette('foregroundColor', v)} />
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>FG</span>
+              <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.35)' }}>FG</span>
             </div>
           </div>
 
@@ -191,7 +191,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
                   color={resolveColor(state.palette[key])}
                   onChange={(v) => setPalette(key, v)}
                 />
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{label}</span>
+                <span className="text-[10px]" style={{ color: 'rgba(0,0,0,0.35)' }}>{label}</span>
               </div>
             ))}
           </div>
@@ -208,7 +208,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
       </div>
 
       {/* ── Footer / Export ── */}
-      <div className="px-4 py-4 flex flex-col gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="px-4 py-4 flex flex-col gap-2" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
 
         {/* Format selector */}
         <Select
@@ -224,11 +224,11 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
         {/* MP4 progress bar */}
         {(format === 'mp4' || format === 'webm') && exportProgress !== null ? (
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <div className="flex justify-between text-[12px]" style={{ color: 'rgba(0,0,0,0.4)' }}>
               <span>Exporting…</span>
               <span>{Math.round(exportProgress * 100)}%</span>
             </div>
-            <div className="w-full rounded-[6px] h-1" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div className="w-full rounded-[6px] h-1" style={{ background: 'rgba(0,0,0,0.08)' }}>
               <div
                 className="h-1 rounded-[6px] transition-all duration-150"
                 style={{ width: `${exportProgress * 100}%`, background: '#0000FF' }}
@@ -247,7 +247,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             <button
               onClick={() => onCopy(format)}
               disabled={format === 'mp4' || format === 'webm'}
-              className="flex-1 py-2.5 rounded-[6px] text-[13px] text-white/50 hover:text-white/80 border border-white/10 hover:border-white/20 transition-all duration-150 active:scale-[0.97] disabled:opacity-30 disabled:pointer-events-none"
+              className="flex-1 py-2.5 rounded-[6px] text-[13px] text-black/45 hover:text-black/70 border border-black/10 hover:border-black/20 transition-all duration-150 active:scale-[0.97] disabled:opacity-30 disabled:pointer-events-none"
             >
               Copy
             </button>
