@@ -93,21 +93,32 @@ function AccordionSection({
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div
-      className="rounded-[16px] mb-3 transition-colors duration-150"
-      style={open ? { background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.6)' } : {}}
+      className="rounded-[16px] mb-3"
+      style={{
+        background: open ? (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.6)') : 'transparent',
+        transition: 'background 0.25s cubic-bezier(0.4,0,0.2,1)',
+      }}
     >
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`w-full text-left px-3 py-3 text-[15px] rounded-[10px] transition-colors duration-150 active:opacity-50 ${!open ? 'hover:bg-[var(--ui-ctrl-bg)]' : ''}`}
+        className={`w-full text-left px-3 py-3 text-[15px] rounded-[10px] transition-colors duration-150 ${!open ? 'hover:bg-[var(--ui-ctrl-bg)]' : ''}`}
         style={{ color: isDark ? 'rgba(255,255,255,0.9)' : '#000000' }}
       >
         {title}
       </button>
-      {open && (
-        <div className="px-4 pb-4 flex flex-col gap-3.5">
-          {children}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateRows: open ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.3s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        <div className="overflow-hidden">
+          <div className="px-4 pb-4 flex flex-col gap-3.5">
+            {children}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -172,11 +172,11 @@ export function SegmentedControl<T extends string>({
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className="flex-1 py-1.5 px-2 text-center rounded-[5px] transition-all duration-150 active:scale-[0.96]"
+          className="flex-1 py-1.5 px-2 text-center rounded-[5px] transition-all duration-150"
           style={
             value === opt.value
               ? { background: 'var(--ui-seg-active-bg)', color: 'var(--ui-seg-active-text)', fontWeight: 500 }
-              : { color: 'var(--ui-seg-inactive-text)' }
+              : { background: 'transparent', color: 'var(--ui-seg-inactive-text)' }
           }
         >
           {opt.label}
