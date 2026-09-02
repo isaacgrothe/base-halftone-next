@@ -20,9 +20,9 @@ const PANELS: { id: PanelId; label: string; icon: string }[] = [
 export function NavBar({ open, onToggle, onExportConfig, onImportConfig }: Props) {
   return (
     <div
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 rounded-2xl px-3 py-2 shadow-2xl"
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-0.5 rounded-[10px] px-2 py-1.5 shadow-2xl"
       style={{
-        background: 'rgba(15, 15, 20, 0.85)',
+        background: 'rgba(10, 10, 14, 0.92)',
         backdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,0.08)',
       }}
@@ -32,33 +32,37 @@ export function NavBar({ open, onToggle, onExportConfig, onImportConfig }: Props
           key={id}
           onClick={() => onToggle(id)}
           title={label}
-          className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 text-sm transition-colors ${
-            open.has(id) ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/70 hover:bg-white/10'
-          }`}
+          className="w-11 h-10 rounded-[8px] flex flex-col items-center justify-center gap-0.5 transition-all duration-150 active:scale-[0.92]"
+          style={{
+            background: open.has(id) ? 'rgba(255,255,255,0.12)' : 'transparent',
+            color: open.has(id) ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.38)',
+          }}
         >
-          <span className="text-base leading-none">{icon}</span>
-          <span className="text-[9px] font-mono">{label}</span>
+          <span className="text-[15px] leading-none">{icon}</span>
+          <span className="text-[9px] tracking-wide">{label}</span>
         </button>
       ))}
 
-      <div className="w-px h-6 bg-white/10 mx-1" />
+      <div className="w-px h-5 mx-1" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
       <button
         onClick={onExportConfig}
         title="Export config JSON"
-        className="w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+        className="w-11 h-10 rounded-[8px] flex flex-col items-center justify-center gap-0.5 transition-all duration-150 active:scale-[0.92]"
+        style={{ color: 'rgba(255,255,255,0.38)' }}
       >
-        <span className="text-base leading-none">↑</span>
-        <span className="text-[9px] font-mono">Export</span>
+        <span className="text-[15px] leading-none">↑</span>
+        <span className="text-[9px] tracking-wide">Export</span>
       </button>
 
       <button
         onClick={onImportConfig}
         title="Import config JSON"
-        className="w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+        className="w-11 h-10 rounded-[8px] flex flex-col items-center justify-center gap-0.5 transition-all duration-150 active:scale-[0.92]"
+        style={{ color: 'rgba(255,255,255,0.38)' }}
       >
-        <span className="text-base leading-none">↓</span>
-        <span className="text-[9px] font-mono">Import</span>
+        <span className="text-[15px] leading-none">↓</span>
+        <span className="text-[9px] tracking-wide">Import</span>
       </button>
     </div>
   )

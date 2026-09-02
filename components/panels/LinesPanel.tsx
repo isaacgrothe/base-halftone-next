@@ -28,14 +28,8 @@ export function LinesPanel({ config, mediaMode, onChange, onClose, onExportSvg }
         <Row label="Resolution">
           <Slider value={config.resolution} min={0.005} max={0.12} step={0.001} onChange={(v) => set('resolution', v)} />
         </Row>
-        <Row label="Scale">
-          <Slider value={config.scale} min={0.1} max={1.5} step={0.01} onChange={(v) => set('scale', v)} />
-        </Row>
         <Row label="Contrast">
           <Slider value={config.contrast} min={0.5} max={10} step={0.1} onChange={(v) => set('contrast', v)} />
-        </Row>
-        <Row label="Cap roundness">
-          <Slider value={config.capRoundness} min={0} max={1} step={0.01} onChange={(v) => set('capRoundness', v)} />
         </Row>
       </PanelSection>
 

@@ -25,20 +25,16 @@ export const imageFragmentShader = /* glsl */ `
   float kernel[5];
 
   vec3 sampleAR(vec2 uv) {
-    // Aspect-ratio correction: letterbox/pillarbox the texture
+    // Aspect-ratio correction: cover mode — always fills the frame, crops if needed
     float texAR = u_aspect;
     float viewAR = u_viewAspect;
     vec2 scale = vec2(1.0);
-    vec2 offset = vec2(0.0);
     if (viewAR > texAR) {
-      scale.x = texAR / viewAR;
+      scale.y = texAR / viewAR;
     } else {
-      scale.y = viewAR / texAR;
+      scale.x = viewAR / texAR;
     }
-    vec2 corrected = (uv - 0.5) / scale + 0.5;
-    if (corrected.x < 0.0 || corrected.x > 1.0 || corrected.y < 0.0 || corrected.y > 1.0) {
-      return vec3(0.0);
-    }
+    vec2 corrected = (uv - 0.5) * scale + 0.5;
     return texture2D(u_texture, corrected).rgb;
   }
 
@@ -134,7 +130,7 @@ export const lineFragmentShader = /* glsl */ `
     vec2 uv = clamp((cellCoord + 0.5) / cellCount, 0.0, 1.0);
     float l = luma(texture2D(u_texture, uv).rgb);
     l = applyContrast(l);
-    if (u_invert) l = 1.0 - l;
+    if (!u_invert) l = 1.0 - l;
     return l;
   }
 

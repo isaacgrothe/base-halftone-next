@@ -1,4 +1,4 @@
-export type AspectRatioMode = 'auto' | '16:9' | '1:1' | 'fullscreen'
+export type AspectRatioMode = 'auto' | '16:9' | '9:16' | '1:1' | 'fullscreen'
 export type HeroMode = 'off' | 'light' | 'dark'
 export type MediaMode = 'image' | 'video'
 
@@ -45,6 +45,7 @@ export interface VideoConfig {
   loop: boolean
   muted: boolean
   autoPlay: boolean
+  blurPx: number
 }
 
 export interface AppState {

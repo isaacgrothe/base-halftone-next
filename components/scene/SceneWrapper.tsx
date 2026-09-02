@@ -10,8 +10,9 @@ import type { AppState, ImageConfig, VideoConfig } from '@/lib/types'
 // These meshes live in a virtual off-screen scene. SceneWrapper renders that
 // scene into a render target each frame; LineRenderer reads the result.
 
-function ImageMesh({ config }: { config: ImageConfig }) {
+function ImageMesh({ config, onAspect }: { config: ImageConfig; onAspect?: (ar: number) => void }) {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
+  const reportedSrc = useRef<string>('')
 
   const texture = useMemo(() => {
     if (!config.src) return null
@@ -30,6 +31,7 @@ function ImageMesh({ config }: { config: ImageConfig }) {
   useEffect(() => {
     if (!materialRef.current) return
     materialRef.current.uniforms.u_texture.value = texture
+    reportedSrc.current = ''
   }, [texture])
 
   const { size } = useThree()
@@ -45,11 +47,20 @@ function ImageMesh({ config }: { config: ImageConfig }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [])
 
+  useEffect(() => {
+    if (!materialRef.current) return
+    materialRef.current.uniforms.u_viewAspect.value = size.width / size.height
+  }, [size])
+
   useFrame(() => {
     if (!materialRef.current || !texture) return
     const img = texture.image as HTMLImageElement | undefined
     if (img?.width) {
       materialRef.current.uniforms.u_aspect.value = img.width / img.height
+      if (reportedSrc.current !== config.src) {
+        reportedSrc.current = config.src
+        onAspect?.(img.width / img.height)
+      }
     }
   })
 
@@ -66,16 +77,17 @@ function ImageMesh({ config }: { config: ImageConfig }) {
   )
 }
 
-function VideoMesh({ config }: { config: VideoConfig }) {
+function VideoMesh({ config, onAspect, onDuration }: { config: VideoConfig; onAspect?: (ar: number) => void; onDuration?: (d: number) => void }) {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const textureRef = useRef<THREE.VideoTexture | null>(null)
+  const reportedSrc = useRef<string>('')
 
   const { size } = useThree()
   const uniforms = useMemo(() => ({
     u_texture:    { value: null as THREE.Texture | null },
     u_resolution: { value: new THREE.Vector2(size.width, size.height) },
-    u_blurPx:     { value: 0 },
+    u_blurPx:     { value: config.blurPx },
     u_aspect:     { value: 16 / 9 },
     u_viewAspect: { value: size.width / size.height },
     u_scale:      { value: new THREE.Vector2(1, 1) },
@@ -84,6 +96,7 @@ function VideoMesh({ config }: { config: VideoConfig }) {
   }), [])
 
   useEffect(() => {
+    reportedSrc.current = ''
     const video = document.createElement('video')
     video.src = config.src
     video.loop = config.loop
@@ -93,6 +106,7 @@ function VideoMesh({ config }: { config: VideoConfig }) {
     video.crossOrigin = 'anonymous'
     video.style.display = 'none'
     document.body.appendChild(video)
+    video.addEventListener('loadedmetadata', () => { if (video.duration) onDuration?.(video.duration) })
     if (config.autoPlay) video.play().catch(() => {})
 
     const tex = new THREE.VideoTexture(video)
@@ -113,11 +127,25 @@ function VideoMesh({ config }: { config: VideoConfig }) {
     }
   }, [config.src, config.loop, config.muted, config.autoPlay])
 
+  useEffect(() => {
+    if (!materialRef.current) return
+    materialRef.current.uniforms.u_viewAspect.value = size.width / size.height
+  }, [size])
+
+  useEffect(() => {
+    if (!materialRef.current) return
+    materialRef.current.uniforms.u_blurPx.value = config.blurPx
+  }, [config.blurPx])
+
   useFrame(() => {
     if (!materialRef.current) return
     const vid = videoRef.current
     if (vid?.videoWidth) {
       materialRef.current.uniforms.u_aspect.value = vid.videoWidth / vid.videoHeight
+      if (reportedSrc.current !== config.src) {
+        reportedSrc.current = config.src
+        onAspect?.(vid.videoWidth / vid.videoHeight)
+      }
     }
     if (textureRef.current) textureRef.current.needsUpdate = true
   })
@@ -137,7 +165,7 @@ function VideoMesh({ config }: { config: VideoConfig }) {
 
 // ─── Main scene wrapper ───────────────────────────────────────────────────────
 
-function Inner({ state }: { state: AppState }) {
+function Inner({ state, onAspect, onDuration }: { state: AppState; onAspect?: (ar: number) => void; onDuration?: (d: number) => void }) {
   const { gl, size } = useThree()
 
   // Off-screen scene and camera for the source media
@@ -172,8 +200,8 @@ function Inner({ state }: { state: AppState }) {
       {/* Source media rendered into virtual scene → render target */}
       {createPortal(
         state.global.mediaMode === 'image'
-          ? <ImageMesh config={state.image} />
-          : <VideoMesh config={state.video} />,
+          ? <ImageMesh config={state.image} onAspect={onAspect} />
+          : <VideoMesh config={state.video} onAspect={onAspect} onDuration={onDuration} />,
         sourceScene
       )}
 
@@ -187,6 +215,6 @@ function Inner({ state }: { state: AppState }) {
   )
 }
 
-export function SceneWrapper({ state }: { state: AppState }) {
-  return <Inner state={state} />
+export function SceneWrapper({ state, onAspect, onDuration }: { state: AppState; onAspect?: (ar: number) => void; onDuration?: (d: number) => void }) {
+  return <Inner state={state} onAspect={onAspect} onDuration={onDuration} />
 }

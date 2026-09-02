@@ -3,7 +3,7 @@ import { useRef, useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { lineVertexShader, lineFragmentShader } from '@/lib/shaders'
-import { resolveColor } from '@/lib/spectrum'
+import { resolveColor, hexToVec3 } from '@/lib/spectrum'
 import type { LineRendererConfig, PaletteConfig } from '@/lib/types'
 
 interface Props {
@@ -16,11 +16,13 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
   const { size } = useThree()
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
+  const toVec3 = (token: string) => new THREE.Vector3(...hexToVec3(resolveColor(token)))
+
   const lineColorsVec3 = useMemo(() => [
-    new THREE.Color(resolveColor(palette.lineOne)),
-    new THREE.Color(resolveColor(palette.lineTwo)),
-    new THREE.Color(resolveColor(palette.lineThree)),
-    new THREE.Color(resolveColor(palette.lineFour)),
+    toVec3(palette.lineOne),
+    toVec3(palette.lineTwo),
+    toVec3(palette.lineThree),
+    toVec3(palette.lineFour),
   ], [palette.lineOne, palette.lineTwo, palette.lineThree, palette.lineFour])
 
   const uniforms = useMemo(() => ({
@@ -31,8 +33,8 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     u_contrast:         { value: lineRenderer.contrast },
     u_vertical:         { value: lineRenderer.vertical },
     u_invert:           { value: lineRenderer.invert },
-    u_bgColor:          { value: new THREE.Color(resolveColor(palette.backgroundColor)) },
-    u_fgColor:          { value: new THREE.Color(resolveColor(palette.foregroundColor)) },
+    u_bgColor:          { value: toVec3(palette.backgroundColor) },
+    u_fgColor:          { value: toVec3(palette.foregroundColor) },
     u_useColors:        { value: lineRenderer.useColors },
     u_lineColors:       { value: lineColorsVec3 },
     u_blankSpots:       { value: lineRenderer.blankSpots },
@@ -63,8 +65,8 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
   useEffect(() => {
     const u = materialRef.current?.uniforms
     if (!u) return
-    u.u_bgColor.value    = new THREE.Color(resolveColor(palette.backgroundColor))
-    u.u_fgColor.value    = new THREE.Color(resolveColor(palette.foregroundColor))
+    u.u_bgColor.value    = toVec3(palette.backgroundColor)
+    u.u_fgColor.value    = toVec3(palette.foregroundColor)
     u.u_lineColors.value = lineColorsVec3
   }, [palette, lineColorsVec3])
 

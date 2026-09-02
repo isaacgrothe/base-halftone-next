@@ -48,7 +48,7 @@ function lumToTier(lum: number, blankSpots: boolean): { tier: number; thickness:
 
 // ─── Main export function ────────────────────────────────────────────────────
 
-export async function exportSvg(state: AppState): Promise<void> {
+export async function exportSvg(state: AppState, canvasW: number, canvasH: number): Promise<string> {
   const { lineRenderer, palette, image } = state
 
   // ── 1. Load source image into an OffscreenCanvas ─────────────────────────
@@ -60,26 +60,28 @@ export async function exportSvg(state: AppState): Promise<void> {
     img.src = image.src
   })
 
-  // Render size — we work at a fixed resolution for the algorithm, then scale
-  // the SVG to match. Use the image's native resolution capped at 2048px wide.
-  const renderW = Math.min(img.naturalWidth || 1920, 2048)
-  const renderH = Math.round(renderW * (img.naturalHeight / img.naturalWidth))
+  // Use the exact on-screen canvas dimensions so cell count matches the display
+  const imgAR = img.naturalWidth / img.naturalHeight
+  const renderW = canvasW
+  const renderH = canvasH
+  const targetAR = renderW / renderH
 
   const oc = new OffscreenCanvas(renderW, renderH)
   const ctx = oc.getContext('2d')!
 
-  // Letterbox-correct draw (same as the GLSL imageFragmentShader)
-  const imgAR = img.naturalWidth / img.naturalHeight
-  const viewAR = renderW / renderH
-  let drawW = renderW
-  let drawH = renderH
-  let drawX = 0
-  let drawY = 0
-  if (viewAR > imgAR) {
+  // Cover-mode draw: fill the target frame, cropping the image as needed
+  let drawW: number, drawH: number, drawX: number, drawY: number
+  if (imgAR > targetAR) {
+    // Image wider than frame: fill height, crop sides
+    drawH = renderH
     drawW = renderH * imgAR
     drawX = (renderW - drawW) / 2
+    drawY = 0
   } else {
+    // Image taller than frame: fill width, crop top/bottom
+    drawW = renderW
     drawH = renderW / imgAR
+    drawX = 0
     drawY = (renderH - drawH) / 2
   }
 
@@ -126,7 +128,7 @@ export async function exportSvg(state: AppState): Promise<void> {
       const idx = (py * renderW + px) * 4
       let l = luma(pixels[idx], pixels[idx + 1], pixels[idx + 2])
       l = applyContrast(l, lineRenderer.contrast)
-      if (lineRenderer.invert) l = 1 - l
+      if (!lineRenderer.invert) l = 1 - l
       return lumToTier(l, lineRenderer.blankSpots).tier
     })
   )
@@ -249,14 +251,10 @@ export async function exportSvg(state: AppState): Promise<void> {
   const svg = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
-    `  <rect width="${svgW}" height="${svgH}" fill="${bgColor}"/>`,
+    ...(lineRenderer.alpha ? [] : [`  <rect width="${svgW}" height="${svgH}" fill="${bgColor}"/>`]),
     ...rects,
     `</svg>`,
   ].join('\n')
 
-  const blob = new Blob([svg], { type: 'image/svg+xml' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = 'halftone.svg'
-  a.click()
+  return svg
 }
