@@ -1,4 +1,4 @@
-export type AspectRatioMode = 'auto' | '16:9' | '9:16' | '1:1' | 'fullscreen'
+export type AspectRatioMode = 'auto' | '16:9' | '9:16' | '1:1' | 'fullscreen' | 'custom'
 export type ShapeMode = 'lines' | 'squares' | 'mixed'
 export type HeroMode = 'off' | 'light' | 'dark'
 export type MediaMode = 'image' | 'video'
@@ -8,7 +8,10 @@ export interface GlobalConfig {
   outputCornerRadiusPx: number
   backgroundImageSrc: string
   aspectRatioMode: AspectRatioMode
+  customWidth: number
+  customHeight: number
   heroMode: HeroMode
+  isDark: boolean
 }
 
 export interface PaletteConfig {
@@ -18,6 +21,10 @@ export interface PaletteConfig {
   lineTwo: string
   lineThree: string
   lineFour: string
+  // Mixed-mode shape colors — 7 entries ordered lightest→darkest tier
+  // (cross, thin bar, wide bar, small diamond, large diamond, two squares, frame)
+  mixLight: [string, string, string, string, string, string, string]
+  mixDark:  [string, string, string, string, string, string, string]
 }
 
 export interface LineRendererConfig {
@@ -33,6 +40,7 @@ export interface LineRendererConfig {
   resolution: number
   alpha: boolean
   showUnderlay: boolean
+  sizeVariation: number
 }
 
 export interface ImageConfig {

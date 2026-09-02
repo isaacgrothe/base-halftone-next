@@ -4,15 +4,17 @@ import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { lineVertexShader, lineFragmentShader } from '@/lib/shaders'
 import { resolveColor, hexToVec3 } from '@/lib/spectrum'
+import { DEFAULT_STATE } from '@/lib/defaultState'
 import type { LineRendererConfig, PaletteConfig } from '@/lib/types'
 
 interface Props {
   lineRenderer: LineRendererConfig
   palette: PaletteConfig
   sourceTarget: THREE.WebGLRenderTarget
+  isDark: boolean
 }
 
-export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
+export function LineRenderer({ lineRenderer, palette, sourceTarget, isDark }: Props) {
   const { size } = useThree()
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
@@ -24,6 +26,12 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     toVec3(palette.lineThree),
     toVec3(palette.lineFour),
   ], [palette.lineOne, palette.lineTwo, palette.lineThree, palette.lineFour])
+
+  const getMixColors = () => {
+    const src = (isDark ? palette.mixDark : palette.mixLight)
+      ?? (isDark ? DEFAULT_STATE.palette.mixDark : DEFAULT_STATE.palette.mixLight)
+    return src.map((c) => toVec3(c))
+  }
 
   const uniforms = useMemo(() => ({
     u_texture:          { value: sourceTarget.texture },
@@ -43,6 +51,8 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     u_alpha:            { value: lineRenderer.alpha },
     u_showUnderlay:     { value: lineRenderer.showUnderlay },
     u_shapeMode:        { value: ['lines','squares','mixed'].indexOf(lineRenderer.shapeMode) },
+    u_sizeVariation:    { value: lineRenderer.sizeVariation },
+    u_mixColors:        { value: getMixColors() },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [])
 
@@ -62,6 +72,7 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     u.u_showUnderlay.value   = lineRenderer.showUnderlay
     u.u_useColors.value      = lineRenderer.useColors
     u.u_shapeMode.value      = ['lines','squares','mixed'].indexOf(lineRenderer.shapeMode)
+    u.u_sizeVariation.value  = lineRenderer.sizeVariation
   }, [lineRenderer])
 
   useEffect(() => {
@@ -71,6 +82,13 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     u.u_fgColor.value    = toVec3(palette.foregroundColor)
     u.u_lineColors.value = lineColorsVec3
   }, [palette, lineColorsVec3])
+
+  useEffect(() => {
+    const u = materialRef.current?.uniforms
+    if (!u) return
+    u.u_mixColors.value = getMixColors()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDark, palette.mixDark, palette.mixLight])
 
   useEffect(() => {
     const u = materialRef.current?.uniforms

@@ -9,7 +9,7 @@ export function PanelSection({ label, children }: { label?: string; children: Re
   return (
     <div className="flex flex-col gap-2.5">
       {label && (
-        <div className="text-[11px] font-medium tracking-wide" style={{ color: 'var(--ui-label)' }}>
+        <div className="text-[12px]" style={{ color: 'var(--ui-label)' }}>
           {label}
         </div>
       )}
@@ -22,7 +22,7 @@ export function Row({ children, label }: { children: ReactNode; label?: string }
   return (
     <div className="flex items-center justify-between gap-3 min-h-[30px]">
       {label && (
-        <span className="text-[13px] shrink-0 w-28" style={{ color: 'var(--ui-text)' }}>
+        <span className="text-[12px] shrink-0 w-20" style={{ color: 'var(--ui-text)' }}>
           {label}
         </span>
       )}
@@ -143,7 +143,7 @@ export function Toggle({
         />
       </div>
       {label && (
-        <span className="text-[13px]" style={{ color: 'var(--ui-text)' }}>
+        <span className="text-[12px]" style={{ color: 'var(--ui-text)' }}>
           {label}
         </span>
       )}
@@ -198,7 +198,7 @@ export function ColorSwatch({
   return (
     <div className="flex items-center gap-2">
       {label && (
-        <span className="text-[13px] flex-1" style={{ color: 'var(--ui-text)' }}>
+        <span className="text-[12px] flex-1" style={{ color: 'var(--ui-text)' }}>
           {label}
         </span>
       )}

@@ -210,6 +210,7 @@ function Inner({ state, onAspect, onDuration }: { state: AppState; onAspect?: (a
         lineRenderer={state.lineRenderer}
         palette={state.palette}
         sourceTarget={sourceTarget}
+        isDark={state.global.isDark}
       />
     </>
   )

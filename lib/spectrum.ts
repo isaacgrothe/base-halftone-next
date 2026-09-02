@@ -104,6 +104,7 @@ export function hexToVec3(hex: string): [number, number, number] {
 export const COLOR_PRESETS = [
   {
     label: 'Core',
+    isDark: false,
     palette: {
       backgroundColor: '#FFFFFF',
       foregroundColor: '#0000FF',
@@ -116,6 +117,7 @@ export const COLOR_PRESETS = [
   },
   {
     label: 'Dark Mode',
+    isDark: true,
     palette: {
       backgroundColor: '#000000',
       foregroundColor: '#FFFFFF',

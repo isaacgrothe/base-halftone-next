@@ -9,6 +9,7 @@ THREE.ColorManagement.enabled = false
 
 import dynamic from 'next/dynamic'
 import { Sidebar } from '@/components/Sidebar'
+import { ShapeSelector, LEFT_PANEL_W } from '@/components/ShapeSelector'
 import { DEFAULT_STATE } from '@/lib/defaultState'
 import { resolveColor } from '@/lib/spectrum'
 import { exportSvg } from '@/lib/exportSvg'
@@ -29,7 +30,7 @@ export default function Home() {
   const [sourceAspect, setSourceAspect] = useState<number | null>(null)
   const [videoDuration, setVideoDuration] = useState<number>(0)
   const [exportProgress, setExportProgress] = useState<number | null>(null)
-  const [isDark, setIsDark] = useState(false)
+  const isDark = state.global.isDark
   const glRef = useRef<THREE.WebGLRenderer | null>(null)
   const imageSrcRef = useRef(DEFAULT_STATE.image.src)
   const videoSrcRef = useRef(DEFAULT_STATE.video.src)
@@ -121,7 +122,7 @@ export default function Home() {
     const ar = state.global.aspectRatioMode
     if (ar === 'auto') {
       if (sourceAspect && windowSize.w) {
-        const PAD = 32        // p-8 = 2rem = 32px each side
+        const PAD = 16        // p-4 = 1rem = 16px each side
         const cw = windowSize.w - SIDEBAR_W - PAD * 2
         const ch = windowSize.h - PAD * 2
         const w = sourceAspect > cw / ch ? cw : ch * sourceAspect
@@ -129,6 +130,18 @@ export default function Home() {
         return { width: Math.round(w), height: Math.round(h) }
       }
       return { width: '100%', height: '100%' }
+    }
+    if (ar === 'custom') {
+      const ratio = state.global.customWidth / Math.max(state.global.customHeight, 1)
+      if (windowSize.w) {
+        const PAD = 32
+        const cw = windowSize.w - SIDEBAR_W - PAD * 2
+        const ch = windowSize.h - PAD * 2
+        const w = ratio > cw / ch ? cw : ch * ratio
+        const h = ratio > cw / ch ? cw / ratio : ch
+        return { width: Math.round(w), height: Math.round(h) }
+      }
+      return { aspectRatio: `${state.global.customWidth}/${state.global.customHeight}`, width: '100%', height: 'auto', maxHeight: '100%' }
     }
     if (ar === '16:9') return { aspectRatio: '16/9', width: '100%', height: 'auto', maxHeight: '100%' }
     if (ar === '9:16') return { aspectRatio: '9/16', width: 'auto', height: '100%', maxWidth: '100%' }
@@ -144,10 +157,17 @@ export default function Home() {
       style={{ background: isDark ? '#141414' : '#EFEFEF', transition: 'background 0.2s ease' }}
     >
 
-      {/* Canvas area — inset from the right sidebar */}
+      {/* Left shape selector panel */}
+      <ShapeSelector
+        shapeMode={state.lineRenderer.shapeMode}
+        onChange={(mode) => patch('lineRenderer', { ...state.lineRenderer, shapeMode: mode })}
+        isDark={isDark}
+      />
+
+      {/* Canvas area — inset from both panels */}
       <div
-        className="absolute top-0 left-0 bottom-0 flex items-center justify-center p-8"
-        style={{ right: SIDEBAR_W }}
+        className="absolute top-0 bottom-0 flex items-center justify-center p-4"
+        style={{ left: LEFT_PANEL_W, right: SIDEBAR_W }}
       >
         <div
           className="relative"
@@ -155,6 +175,7 @@ export default function Home() {
             ...canvasStyle,
             borderRadius: state.global.outputCornerRadiusPx,
             overflow: 'hidden',
+            boxShadow: isDark ? '0 0 0 1px rgba(255,255,255,0.10)' : '0 0 0 1px rgba(0,0,0,0.08)',
             ...(state.lineRenderer.alpha ? {
               backgroundColor: isDark ? '#222222' : '#f0f0f0',
               backgroundImage: isDark ? [
@@ -189,8 +210,6 @@ export default function Home() {
         onExport={handleExport}
         onCopy={handleCopy}
         exportProgress={exportProgress}
-        isDark={isDark}
-        onToggleDark={() => setIsDark((d) => !d)}
       />
 
     </main>

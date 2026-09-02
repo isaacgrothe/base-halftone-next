@@ -98,7 +98,9 @@ export const lineFragmentShader = /* glsl */ `
   uniform float u_capRoundness;     // 0 = flat ends, 1 = fully round caps
   uniform bool u_alpha;             // transparent background (lines only)
   uniform bool u_showUnderlay;      // show source image underneath
-  uniform int u_shapeMode;          // 0=lines, 1=dots, 2=squares, 3=diamonds
+  uniform int u_shapeMode;          // 0=lines, 1=squares, 2=mixed
+  uniform float u_sizeVariation;    // 0=fixed size, 1=luminance-driven size (squares mode)
+  uniform vec3 u_mixColors[7];      // mixed-mode colors, lightest→darkest tier
 
   varying vec2 vUv;
 
@@ -219,26 +221,75 @@ export const lineFragmentShader = /* glsl */ `
 
     } else {
       vec2 p = cellPos - vec2(0.5);
-      float r = thickness * 0.45;
       float dist;
 
       if (u_shapeMode == 1) {
         // ── Squares — box SDF ──────────────────────────────────────────
+        float r;
+        if (u_showGaps) {
+          // gaps on: scale controls size, variation blends fixed↔luminance
+          r = mix(u_scale, thickness, u_sizeVariation) * 0.45;
+        } else {
+          // gaps off: squares fill the cell; at variation=0 all touch
+          float normT = thickness / max(u_scale, 0.001); // 0.25→1.0 tier fraction
+          r = mix(0.5, normT * 0.5, u_sizeVariation);
+        }
         vec2 q = abs(p) - vec2(r);
         dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
 
       } else {
-        // ── Mixed — shape driven by luminance tier ──────────────────────
-        // tier 3 (darkest)  → squares
-        // tier 1–2 (mid)    → diamonds
-        // tier 0 (lightest) → horizontal bars
-        if (tier == 3) {
-          vec2 q = abs(p) - vec2(r);
-          dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-        } else if (tier >= 1) {
-          dist = abs(p.x) + abs(p.y) - r;
+        // ── Mixed — 7 brand shapes at exact SVG proportions, edge-to-edge ─
+        // All sizes derived from the brand SVG (cell = 77 units).
+        // Order darkest→lightest: frame → 2-squares → lg-diamond →
+        //   sm-diamond → wide-bar → thin-bar → cross
+        // Tiers are distributed across the active lum range so the cross
+        // (lightest tier) is never swallowed by the blank-spots zone.
+        float lumMin = u_blankSpots ? 0.20 : 0.0;
+        float s7 = (1.0 - lumMin) / 7.0;
+        float lAdj = lum - lumMin;
+
+        if (lAdj < s7) {
+          // Tier 1 (lightest): cross / plus
+          lineColor = u_mixColors[0];
+          float horiz = max(abs(p.x) - 0.502, abs(p.y) - 0.1044);
+          float vert  = max(abs(p.x) - 0.1044, abs(p.y) - 0.502);
+          dist = min(horiz, vert);
+
+        } else if (lAdj < 2.0 * s7) {
+          // Tier 2: thin horizontal bar
+          lineColor = u_mixColors[1];
+          dist = max(abs(p.x) - 0.502, abs(p.y) - 0.0572);
+
+        } else if (lAdj < 3.0 * s7) {
+          // Tier 3: wide horizontal bar
+          lineColor = u_mixColors[2];
+          dist = max(abs(p.x) - 0.502, abs(p.y) - 0.1515);
+
+        } else if (lAdj < 4.0 * s7) {
+          // Tier 4: small diamond
+          lineColor = u_mixColors[3];
+          dist = abs(p.x) + abs(p.y) - 0.208;
+
+        } else if (lAdj < 5.0 * s7) {
+          // Tier 5: large diamond
+          lineColor = u_mixColors[4];
+          dist = abs(p.x) + abs(p.y) - 0.404;
+
+        } else if (lAdj < 6.0 * s7) {
+          // Tier 6: two diagonal squares
+          lineColor = u_mixColors[5];
+          float sq1 = max(abs(p.x + 0.25) - 0.252, abs(p.y - 0.25) - 0.252);
+          float sq2 = max(abs(p.x - 0.25) - 0.252, abs(p.y + 0.25) - 0.252);
+          dist = min(sq1, sq2);
+
         } else {
-          dist = max(abs(p.x) - r, abs(p.y) - r * 0.28);
+          // Tier 7 (darkest): frame (hollow square)
+          lineColor = u_mixColors[6];
+          vec2 qOuter = abs(p) - vec2(0.502);
+          float outer = length(max(qOuter, 0.0)) + min(max(qOuter.x, qOuter.y), 0.0);
+          vec2 qInner = abs(p) - vec2(0.210);
+          float inner = length(max(qInner, 0.0)) + min(max(qInner.x, qInner.y), 0.0);
+          dist = max(outer, -inner);
         }
       }
 
