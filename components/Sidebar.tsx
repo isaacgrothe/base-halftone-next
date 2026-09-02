@@ -213,10 +213,8 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress, isD
           <PanelSection label="Shape">
             <SegmentedControl
               options={[
-                { label: 'Lines',    value: 'lines'    },
-                { label: 'Dots',     value: 'dots'     },
-                { label: 'Squares',  value: 'squares'  },
-                { label: 'Diamonds', value: 'diamonds' },
+                { label: 'Lines',   value: 'lines'   },
+                { label: 'Squares', value: 'squares' },
               ]}
               value={state.lineRenderer.shapeMode}
               onChange={(v) => setLines('shapeMode', v as AppState['lineRenderer']['shapeMode'])}

@@ -42,7 +42,7 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     u_capRoundness:     { value: lineRenderer.capRoundness },
     u_alpha:            { value: lineRenderer.alpha },
     u_showUnderlay:     { value: lineRenderer.showUnderlay },
-    u_shapeMode:        { value: ['lines','dots','squares','diamonds'].indexOf(lineRenderer.shapeMode) },
+    u_shapeMode:        { value: ['lines','squares'].indexOf(lineRenderer.shapeMode) },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [])
 
@@ -61,7 +61,7 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget }: Props) {
     u.u_alpha.value          = lineRenderer.alpha
     u.u_showUnderlay.value   = lineRenderer.showUnderlay
     u.u_useColors.value      = lineRenderer.useColors
-    u.u_shapeMode.value      = ['lines','dots','squares','diamonds'].indexOf(lineRenderer.shapeMode)
+    u.u_shapeMode.value      = ['lines','squares'].indexOf(lineRenderer.shapeMode)
   }, [lineRenderer])
 
   useEffect(() => {

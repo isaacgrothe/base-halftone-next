@@ -218,24 +218,11 @@ export const lineFragmentShader = /* glsl */ `
       }
 
     } else {
-      // ── Cell-based SDF shapes (dots, squares, diamonds) ─────────────
-      vec2 p = cellPos - vec2(0.5); // centered in [-0.5, 0.5]
+      // ── Squares — box SDF ────────────────────────────────────────────
+      vec2 p = cellPos - vec2(0.5);
       float r = thickness * 0.45;
-      float dist;
-
-      if (u_shapeMode == 1) {
-        // Dots — circle SDF
-        dist = length(p) - r;
-
-      } else if (u_shapeMode == 2) {
-        // Squares — box SDF
-        vec2 q = abs(p) - vec2(r);
-        dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-
-      } else {
-        // Diamonds — L1 distance (rotated square)
-        dist = abs(p.x) + abs(p.y) - r;
-      }
+      vec2 q = abs(p) - vec2(r);
+      float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
 
       lineMask = 1.0 - smoothstep(-sdfEdge, sdfEdge, dist);
     }
