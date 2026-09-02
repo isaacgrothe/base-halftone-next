@@ -32,6 +32,7 @@ const LIGHT_VARS = {
   '--ui-divider':           'rgba(0,0,0,0.07)',
   '--ui-slider-track':      'rgba(0,0,0,0.10)',
   '--ui-slider-thumb':      '#0000FF',
+  '--ui-accent':            '#0000FF',
 } as const
 
 const DARK_VARS = {
@@ -50,6 +51,7 @@ const DARK_VARS = {
   '--ui-divider':           'rgba(255,255,255,0.07)',
   '--ui-slider-track':      'rgba(255,255,255,0.12)',
   '--ui-slider-thumb':      '#ffffff',
+  '--ui-accent':            '#7575FF',
 } as const
 
 const ASPECT_OPTIONS = [
@@ -370,7 +372,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             <div className="w-full rounded-full h-1" style={{ background: 'var(--ui-slider-track)' }}>
               <div
                 className="h-1 rounded-full transition-all duration-150"
-                style={{ width: `${exportProgress * 100}%`, background: '#0000FF' }}
+                style={{ width: `${exportProgress * 100}%`, background: 'var(--ui-accent)' }}
               />
             </div>
           </div>
@@ -379,7 +381,7 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
             <button
               onClick={() => onExport(format)}
               className="flex-1 py-2.5 rounded-[10px] text-[12px] font-medium text-white transition-all duration-150 active:scale-[0.97]"
-              style={{ background: '#0000FF' }}
+              style={{ background: 'var(--ui-accent)' }}
             >
               Export
             </button>

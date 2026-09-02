@@ -122,7 +122,7 @@ export function Toggle({
           width: 36,
           height: 20,
           borderRadius: 5,
-          background: checked ? '#0000FF' : 'var(--ui-toggle-off)',
+          background: checked ? 'var(--ui-accent)' : 'var(--ui-toggle-off)',
           transition: 'background 0.15s ease-out',
           flexShrink: 0,
         }}
