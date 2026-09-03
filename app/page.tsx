@@ -43,6 +43,30 @@ export default function Home() {
     return () => window.removeEventListener('resize', update)
   }, [])
 
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          const blob = item.getAsFile()
+          if (!blob) break
+          const url = URL.createObjectURL(blob)
+          imageSrcRef.current = url
+          setSourceAspect(null)
+          setState(prev => ({
+            ...prev,
+            global: { ...prev.global, mediaMode: 'image' },
+            image: { ...prev.image, src: url },
+          }))
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [])
+
   const patch = useCallback(<K extends keyof AppState>(key: K, value: AppState[K]) => {
     setState((prev) => ({ ...prev, [key]: value }))
     if (key === 'image') {
