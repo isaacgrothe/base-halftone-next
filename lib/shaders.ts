@@ -183,13 +183,13 @@ export const lineFragmentShader = /* glsl */ `
       // ── Lines ───────────────────────────────────────────────────────
       if (!u_showGaps) {
         float stripAxis = u_vertical ? cellPos.x : cellPos.y;
-        float halfT = mix(u_scale, thickness, u_widthVariation) * 0.5;
+        float halfT = mix(u_scale, lum * u_scale, u_widthVariation) * 0.5;
         float edge = 0.5 / cellCount.x;
         lineMask = 1.0 - smoothstep(halfT - edge, halfT + edge, abs(stripAxis - 0.5));
       } else {
         float stripAxis = u_vertical ? cellPos.x : cellPos.y;
         float segAxis   = u_vertical ? cellPos.y : cellPos.x;
-        float halfT = mix(u_scale, thickness, u_widthVariation) * 0.5;
+        float halfT = mix(u_scale, lum * u_scale, u_widthVariation) * 0.5;
         float pixelW = 1.0 / (u_vertical ? u_resolutionPixels.x : u_resolutionPixels.y);
         float edge = pixelW * 0.5;
         float dx = abs(stripAxis - 0.5);
