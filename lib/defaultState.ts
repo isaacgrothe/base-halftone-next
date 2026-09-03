@@ -36,6 +36,7 @@ export const DEFAULT_STATE: AppState = {
     alpha: false,
     showUnderlay: false,
     sizeVariation: 0,
+    widthVariation: 0,
   },
   image: {
     src: '/images/karel-martens.jpg',
