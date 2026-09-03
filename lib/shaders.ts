@@ -262,14 +262,14 @@ export const lineFragmentShader = /* glsl */ `
           dist = max(abs(p.x) - 0.502, abs(p.y) - 0.0572);
 
         } else if (lAdj < 3.0 * s7) {
-          // Tier 3: wide horizontal bar
+          // Tier 3: small diamond
           lineColor = u_mixColors[2];
-          dist = max(abs(p.x) - 0.502, abs(p.y) - 0.1515);
+          dist = abs(p.x) + abs(p.y) - 0.208;
 
         } else if (lAdj < 4.0 * s7) {
-          // Tier 4: small diamond
+          // Tier 4: wide horizontal bar
           lineColor = u_mixColors[3];
-          dist = abs(p.x) + abs(p.y) - 0.208;
+          dist = max(abs(p.x) - 0.502, abs(p.y) - 0.1515);
 
         } else if (lAdj < 5.0 * s7) {
           // Tier 5: large diamond
