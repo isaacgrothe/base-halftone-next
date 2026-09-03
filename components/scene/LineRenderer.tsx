@@ -52,7 +52,6 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget, isDark }: Pr
     u_showUnderlay:     { value: lineRenderer.showUnderlay },
     u_shapeMode:        { value: ['lines','squares','mixed'].indexOf(lineRenderer.shapeMode) },
     u_sizeVariation:    { value: lineRenderer.sizeVariation },
-    u_widthVariation:   { value: lineRenderer.widthVariation },
     u_mixColors:        { value: getMixColors() },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [])
@@ -74,7 +73,6 @@ export function LineRenderer({ lineRenderer, palette, sourceTarget, isDark }: Pr
     u.u_useColors.value      = lineRenderer.useColors
     u.u_shapeMode.value      = ['lines','squares','mixed'].indexOf(lineRenderer.shapeMode)
     u.u_sizeVariation.value  = lineRenderer.sizeVariation
-    u.u_widthVariation.value = lineRenderer.widthVariation
   }, [lineRenderer])
 
   useEffect(() => {

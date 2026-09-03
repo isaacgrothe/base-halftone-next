@@ -41,7 +41,6 @@ export interface LineRendererConfig {
   alpha: boolean
   showUnderlay: boolean
   sizeVariation: number
-  widthVariation: number
 }
 
 export interface ImageConfig {

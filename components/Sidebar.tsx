@@ -248,16 +248,11 @@ export function Sidebar({ state, onChange, onExport, onCopy, exportProgress }: P
 
         <AccordionSection title="Pattern" isDark={isDark}>
           {state.lineRenderer.shapeMode === 'lines' && (
-            <>
-              <SegmentedControl
-                options={[{ label: 'Vertical', value: 'true' }, { label: 'Horizontal', value: 'false' }]}
-                value={String(state.lineRenderer.vertical)}
-                onChange={(v) => setLines('vertical', v === 'true')}
-              />
-              <Row label="Width variation">
-                <Slider value={state.lineRenderer.widthVariation} min={0} max={1} step={0.01} onChange={(v) => setLines('widthVariation', v)} />
-              </Row>
-            </>
+            <SegmentedControl
+              options={[{ label: 'Vertical', value: 'true' }, { label: 'Horizontal', value: 'false' }]}
+              value={String(state.lineRenderer.vertical)}
+              onChange={(v) => setLines('vertical', v === 'true')}
+            />
           )}
           {state.lineRenderer.shapeMode === 'squares' && (
             <Row label="Size variation">
