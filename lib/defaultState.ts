@@ -19,7 +19,7 @@ export const DEFAULT_STATE: AppState = {
     lineThree: '#D796FF',
     lineFour: '#0000FF',
     // Mixed mode: lightest→darkest (cross, thin bar, wide bar, sm diamond, lg diamond, 2-squares, frame)
-    mixLight: ['#B6F569', '#D796FF', '#FFBE00', '#FF7F16', '#009C5C', '#3C8AFF', '#0000FF'],
+    mixLight: ['#B6F569', '#FFBE00', '#009C5C', '#FF7F16', '#D796FF', '#3C8AFF', '#0000FF'],
     mixDark:  ['#0000FF', '#0071FF', '#7B7BFF', '#8C8CFF', '#58A2FF', '#96C5FF', '#FFFFFF'],
   },
   lineRenderer: {
