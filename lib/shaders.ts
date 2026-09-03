@@ -244,6 +244,7 @@ export const lineFragmentShader = /* glsl */ `
         //   sm-diamond → wide-bar → thin-bar → cross
         // Tiers are distributed across the active lum range so the cross
         // (lightest tier) is never swallowed by the blank-spots zone.
+        if (u_showGaps) { p *= 1.3; }
         float lumMin = u_blankSpots ? 0.20 : 0.0;
         float s7 = (1.0 - lumMin) / 7.0;
         float lAdj = lum - lumMin;
