@@ -325,38 +325,49 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
         }
       }
     } else {
-      // showGaps: per-cell segments with gap/cap logic
-      for (let cy = 0; cy < cellCountY; cy++) {
+      // showGaps: merge same-tier runs, gap only at run boundaries
+      if (lineRenderer.vertical) {
         for (let cx = 0; cx < cellCountX; cx++) {
-          const tier = tierGrid[cy][cx]
-          if (tier < 0) continue
-          const t = (lineRenderer.blankSpots ? THICK_BLANK[tier] : THICK_FLAT[tier]) * lineRenderer.scale
-          if (t < 0.01) continue
-          const [r, g, b] = lineRenderer.useColors ? tierColors[tier] : fgColor
-          const fill = `fill="rgb(${r},${g},${b})"`
-
-          if (lineRenderer.vertical) {
+          let runStart = -1, runTier = -2
+          const emitRun = (cyEnd: number) => {
+            if (runStart < 0 || runTier < 0) return
+            const t = (lineRenderer.blankSpots ? THICK_BLANK[runTier] : THICK_FLAT[runTier]) * lineRenderer.scale
+            if (t < 0.01) return
+            const [r, g, b] = lineRenderer.useColors ? tierColors[runTier] : fgColor
             const stripW = t * cellW
             const x = cx * cellW + (cellW - stripW) / 2
-            const connectTop    = getTier(cy - 1, cx) === tier
-            const connectBottom = getTier(cy + 1, cx) === tier
-            const gapTop    = connectTop    ? 0 : GAP_FRAC
-            const gapBottom = connectBottom ? 0 : GAP_FRAC
-            const segY = cy * cellH + gapTop * cellH
-            const segH = cellH * (1 - gapTop - gapBottom)
+            const gapTop    = runStart > 0        ? GAP_FRAC : 0
+            const gapBottom = cyEnd < cellCountY  ? GAP_FRAC : 0
+            const segY = runStart * cellH + gapTop * cellH
+            const segH = (cyEnd - runStart) * cellH - (gapTop + gapBottom) * cellH
             const capR = lineRenderer.capRoundness * stripW * 0.5
-            rects.push(vertSegPath(x, segY, stripW, segH, connectTop ? 0 : capR, connectBottom ? 0 : capR) + ` ${fill}/>`)
-          } else {
+            rects.push(vertSegPath(x, segY, stripW, segH, gapTop ? capR : 0, gapBottom ? capR : 0) + ` fill="rgb(${r},${g},${b})"/>`)
+          }
+          for (let cy = 0; cy <= cellCountY; cy++) {
+            const tier = cy < cellCountY ? tierGrid[cy][cx] : -99
+            if (tier !== runTier) { emitRun(cy); runTier = tier; runStart = tier >= 0 ? cy : -1 }
+          }
+        }
+      } else {
+        for (let cy = 0; cy < cellCountY; cy++) {
+          let runStart = -1, runTier = -2
+          const emitRun = (cxEnd: number) => {
+            if (runStart < 0 || runTier < 0) return
+            const t = (lineRenderer.blankSpots ? THICK_BLANK[runTier] : THICK_FLAT[runTier]) * lineRenderer.scale
+            if (t < 0.01) return
+            const [r, g, b] = lineRenderer.useColors ? tierColors[runTier] : fgColor
             const stripH = t * cellH
             const y = cy * cellH + (cellH - stripH) / 2
-            const connectLeft  = getTier(cy, cx - 1) === tier
-            const connectRight = getTier(cy, cx + 1) === tier
-            const gapLeft  = connectLeft  ? 0 : GAP_FRAC
-            const gapRight = connectRight ? 0 : GAP_FRAC
-            const segX = cx * cellW + gapLeft * cellW
-            const segW = cellW * (1 - gapLeft - gapRight)
+            const gapLeft  = runStart > 0        ? GAP_FRAC : 0
+            const gapRight = cxEnd < cellCountX  ? GAP_FRAC : 0
+            const segX = runStart * cellW + gapLeft * cellW
+            const segW = (cxEnd - runStart) * cellW - (gapLeft + gapRight) * cellW
             const capR = lineRenderer.capRoundness * stripH * 0.5
-            rects.push(horizSegPath(segX, y, segW, stripH, connectLeft ? 0 : capR, connectRight ? 0 : capR) + ` ${fill}/>`)
+            rects.push(horizSegPath(segX, y, segW, stripH, gapLeft ? capR : 0, gapRight ? capR : 0) + ` fill="rgb(${r},${g},${b})"/>`)
+          }
+          for (let cx = 0; cx <= cellCountX; cx++) {
+            const tier = cx < cellCountX ? tierGrid[cy][cx] : -99
+            if (tier !== runTier) { emitRun(cx); runTier = tier; runStart = tier >= 0 ? cx : -1 }
           }
         }
       }
