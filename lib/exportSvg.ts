@@ -2,8 +2,8 @@
  * CPU-side halftone → SVG export.
  *
  * Mirrors the GLSL fragment shader logic exactly, operating on raw pixel data
- * from an OffscreenCanvas. Emits one SVG <rect> per visible line segment with
- * rounded corners determined by capRoundness.
+ * from an OffscreenCanvas. Emits SVG primitives for lines, squares, and mixed
+ * shape modes.
  *
  * Output is a standalone SVG file that can be opened in Illustrator / Figma.
  */
@@ -49,7 +49,7 @@ function lumToTier(lum: number, blankSpots: boolean): { tier: number; thickness:
 // ─── Main export function ────────────────────────────────────────────────────
 
 export async function exportSvg(state: AppState, canvasW: number, canvasH: number): Promise<string> {
-  const { lineRenderer, palette, image } = state
+  const { lineRenderer, palette, image, global: globalCfg } = state
 
   // ── 1. Load source image into an OffscreenCanvas ─────────────────────────
   const img = new Image()
@@ -60,7 +60,6 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
     img.src = image.src
   })
 
-  // Use the exact on-screen canvas dimensions so cell count matches the display
   const imgAR = img.naturalWidth / img.naturalHeight
   const renderW = canvasW
   const renderH = canvasH
@@ -69,34 +68,23 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
   const oc = new OffscreenCanvas(renderW, renderH)
   const ctx = oc.getContext('2d')!
 
-  // Cover-mode draw: fill the target frame, cropping the image as needed
   let drawW: number, drawH: number, drawX: number, drawY: number
   if (imgAR > targetAR) {
-    // Image wider than frame: fill height, crop sides
-    drawH = renderH
-    drawW = renderH * imgAR
-    drawX = (renderW - drawW) / 2
-    drawY = 0
+    drawH = renderH; drawW = renderH * imgAR
+    drawX = (renderW - drawW) / 2; drawY = 0
   } else {
-    // Image taller than frame: fill width, crop top/bottom
-    drawW = renderW
-    drawH = renderW / imgAR
-    drawX = 0
-    drawY = (renderH - drawH) / 2
+    drawW = renderW; drawH = renderW / imgAR
+    drawX = 0; drawY = (renderH - drawH) / 2
   }
 
-  // Apply blur if set
-  if (image.blurPx > 0) {
-    ctx.filter = `blur(${image.blurPx}px)`
-  }
+  if (image.blurPx > 0) ctx.filter = `blur(${image.blurPx}px)`
   ctx.drawImage(img, drawX, drawY, drawW, drawH)
   ctx.filter = 'none'
 
   const pixels = ctx.getImageData(0, 0, renderW, renderH).data
 
   // ── 2. Compute cell grid ──────────────────────────────────────────────────
-  let cellCountX: number
-  let cellCountY: number
+  let cellCountX: number, cellCountY: number
   if (lineRenderer.vertical) {
     cellCountX = Math.round(renderW * lineRenderer.resolution)
     cellCountY = Math.round(cellCountX * (renderH / renderW))
@@ -105,10 +93,10 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
     cellCountX = Math.round(cellCountY * (renderW / renderH))
   }
 
-  const cellW = renderW / cellCountX   // cell width in pixels
-  const cellH = renderH / cellCountY   // cell height in pixels
+  const cellW = renderW / cellCountX
+  const cellH = renderH / cellCountY
 
-  // ── 3. Resolve line colors ────────────────────────────────────────────────
+  // ── 3. Resolve colors ─────────────────────────────────────────────────────
   const tierColors = [
     hexToRgb(resolveColor(palette.lineOne)),
     hexToRgb(resolveColor(palette.lineTwo)),
@@ -118,30 +106,31 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
   const fgColor = hexToRgb(resolveColor(palette.foregroundColor))
   const bgColor = resolveColor(palette.backgroundColor)
 
-  // ── 4. Precompute tier grid ───────────────────────────────────────────────
-  // Sampling per cell is cheap; precomputing avoids 4× redundant lookups when
-  // checking adjacent cells for continuity.
-  const tierGrid: number[][] = Array.from({ length: cellCountY }, (_, cy) =>
-    Array.from({ length: cellCountX }, (_, cx) => {
+  // ── 4. Precompute tier + lum grids ────────────────────────────────────────
+  const tierGrid: number[][] = []
+  const lumGrid: number[][] = []
+
+  for (let cy = 0; cy < cellCountY; cy++) {
+    tierGrid[cy] = []
+    lumGrid[cy] = []
+    for (let cx = 0; cx < cellCountX; cx++) {
       const px = Math.min(Math.round((cx + 0.5) * cellW), renderW - 1)
       const py = Math.min(Math.round((cy + 0.5) * cellH), renderH - 1)
       const idx = (py * renderW + px) * 4
       let l = luma(pixels[idx], pixels[idx + 1], pixels[idx + 2])
       l = applyContrast(l, lineRenderer.contrast)
       if (!lineRenderer.invert) l = 1 - l
-      return lumToTier(l, lineRenderer.blankSpots).tier
-    })
-  )
+      lumGrid[cy][cx] = l
+      tierGrid[cy][cx] = lumToTier(l, lineRenderer.blankSpots).tier
+    }
+  }
 
   const getTier = (cy: number, cx: number): number =>
-    cy >= 0 && cy < cellCountY && cx >= 0 && cx < cellCountX
-      ? tierGrid[cy][cx]
-      : -99  // out-of-bounds always disconnects
+    cy >= 0 && cy < cellCountY && cx >= 0 && cx < cellCountX ? tierGrid[cy][cx] : -99
 
-  // SVG path helpers ────────────────────────────────────────────────────────
+  // ── SVG path helpers ──────────────────────────────────────────────────────
   const f = (n: number) => n.toFixed(2)
 
-  // Vertical segment: caps on top (low Y) and bottom (high Y)
   function vertSegPath(x: number, y: number, w: number, h: number, rxTop: number, rxBottom: number): string {
     const rt = Math.min(rxTop,    w / 2, h / 2)
     const rb = Math.min(rxBottom, w / 2, h / 2)
@@ -149,7 +138,6 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
       return `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}"`
     if (Math.abs(rt - rb) < 0.01)
       return `<rect x="${f(x)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" rx="${f(rt)}"`
-    // Asymmetric: use path
     return `<path d="M ${f(x+rt)} ${f(y)} L ${f(x+w-rt)} ${f(y)} ` +
       (rt > 0 ? `A ${f(rt)} ${f(rt)} 0 0 1 ${f(x+w)} ${f(y+rt)} ` : '') +
       `L ${f(x+w)} ${f(y+h-rb)} ` +
@@ -161,7 +149,6 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
       `Z"`
   }
 
-  // Horizontal segment: caps on left (low X) and right (high X)
   function horizSegPath(x: number, y: number, w: number, h: number, rxLeft: number, rxRight: number): string {
     const rl = Math.min(rxLeft,  w / 2, h / 2)
     const rr = Math.min(rxRight, w / 2, h / 2)
@@ -184,70 +171,175 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
   const svgW = renderW
   const svgH = renderH
   const rects: string[] = []
-  const GAP_FRAC = 0.05   // gap at tier-change ends only; same-tier runs merge seamlessly
 
   const THICK_BLANK = [0.333, 0.555, 0.777, 1.0]
   const THICK_FLAT  = [0.25,  0.50,  0.75,  1.0]
+  const GAP_FRAC    = 0.05
 
-  for (let cy = 0; cy < cellCountY; cy++) {
-    for (let cx = 0; cx < cellCountX; cx++) {
-      const tier = tierGrid[cy][cx]
-      if (tier < 0) continue
+  if (lineRenderer.shapeMode === 'squares') {
+    // ── Squares ─────────────────────────────────────────────────────────────
+    for (let cy = 0; cy < cellCountY; cy++) {
+      for (let cx = 0; cx < cellCountX; cx++) {
+        const tier = tierGrid[cy][cx]
+        if (tier < 0) continue
 
-      const t = (lineRenderer.blankSpots ? THICK_BLANK[tier] : THICK_FLAT[tier]) * lineRenderer.scale
-      if (t < 0.01) continue
+        const thicknessVal = lineRenderer.blankSpots ? THICK_BLANK[tier] : THICK_FLAT[tier]
+        const thickness = thicknessVal * lineRenderer.scale
 
-      const [r, g, b] = lineRenderer.useColors ? tierColors[tier] : fgColor
-      const fill = `fill="rgb(${r},${g},${b})"`
-
-      if (lineRenderer.vertical) {
-        const stripW = t * cellW
-        const x = cx * cellW + (cellW - stripW) / 2
-
-        if (!lineRenderer.showGaps) {
-          rects.push(`<rect x="${f(x)}" y="${f(cy * cellH)}" width="${f(stripW)}" height="${f(cellH)}" ${fill}/>`)
+        let r: number
+        if (lineRenderer.showGaps) {
+          r = (lineRenderer.scale + (thickness - lineRenderer.scale) * lineRenderer.sizeVariation) * 0.45
         } else {
-          // SVG Y increases downward; cell above on screen = cy-1 (shader's connectHigh)
-          const connectTop    = getTier(cy - 1, cx) === tier
-          const connectBottom = getTier(cy + 1, cx) === tier
-
-          const gapTop    = connectTop    ? 0 : GAP_FRAC
-          const gapBottom = connectBottom ? 0 : GAP_FRAC
-
-          const segY = cy * cellH + gapTop * cellH
-          const segH = cellH * (1 - gapTop - gapBottom)
-          const capR = lineRenderer.capRoundness * stripW * 0.5
-          const rxTop    = connectTop    ? 0 : capR
-          const rxBottom = connectBottom ? 0 : capR
-
-          rects.push(vertSegPath(x, segY, stripW, segH, rxTop, rxBottom) + ` ${fill}/>`)
+          r = 0.5 + (thicknessVal * 0.5 - 0.5) * lineRenderer.sizeVariation
         }
-      } else {
-        const stripH = t * cellH
-        const y = cy * cellH + (cellH - stripH) / 2
 
-        if (!lineRenderer.showGaps) {
-          rects.push(`<rect x="${f(cx * cellW)}" y="${f(y)}" width="${f(cellW)}" height="${f(stripH)}" ${fill}/>`)
+        const [rr, rg, rb] = lineRenderer.useColors ? tierColors[tier] : fgColor
+        const fill = `fill="rgb(${rr},${rg},${rb})"`
+        const ox = (cx + 0.5) * cellW
+        const oy = (cy + 0.5) * cellH
+        const hw = r * cellW
+        const hh = r * cellH
+
+        rects.push(`<rect x="${f(ox - hw)}" y="${f(oy - hh)}" width="${f(2 * hw)}" height="${f(2 * hh)}" ${fill}/>`)
+      }
+    }
+
+  } else if (lineRenderer.shapeMode === 'mixed') {
+    // ── Mixed — 7 brand shapes ───────────────────────────────────────────────
+    // Tier order (lightest→darkest): cross, thin bar, small diamond, wide bar,
+    //   large diamond, two squares, frame — mirrors the GLSL shader exactly.
+    const isDark = globalCfg.isDark
+    const mixColors = (isDark ? palette.mixDark : palette.mixLight) ?? palette.mixLight
+    const lumMin = lineRenderer.blankSpots ? 0.20 : 0.0
+    const s7 = (1.0 - lumMin) / 7.0
+    // showGaps scales p by 1.3 in the shader → shapes are 1/1.3 of cell size
+    const sc = lineRenderer.showGaps ? (1.0 / 1.3) : 1.0
+
+    for (let cy = 0; cy < cellCountY; cy++) {
+      for (let cx = 0; cx < cellCountX; cx++) {
+        const l = lumGrid[cy][cx]
+        if (l < lumMin) continue
+
+        const lAdj = l - lumMin
+        const ox = (cx + 0.5) * cellW
+        const oy = (cy + 0.5) * cellH
+        const W = cellW * sc   // effective half-cell (×2) in x
+        const H = cellH * sc   // effective half-cell (×2) in y
+
+        let tierIdx: number
+        if      (lAdj < s7)       tierIdx = 0
+        else if (lAdj < 2 * s7)   tierIdx = 1
+        else if (lAdj < 3 * s7)   tierIdx = 2
+        else if (lAdj < 4 * s7)   tierIdx = 3
+        else if (lAdj < 5 * s7)   tierIdx = 4
+        else if (lAdj < 6 * s7)   tierIdx = 5
+        else                       tierIdx = 6
+
+        const [cr, cg, cb] = hexToRgb(resolveColor(mixColors[tierIdx]))
+        const fill = `fill="rgb(${cr},${cg},${cb})"`
+
+        if (tierIdx === 0) {
+          // Cross: two overlapping bars
+          const hw = 0.502 * W, hh = 0.1044 * H
+          const vw = 0.1044 * W, vh = 0.502 * H
+          rects.push(`<rect x="${f(ox-hw)}" y="${f(oy-hh)}" width="${f(2*hw)}" height="${f(2*hh)}" ${fill}/>`)
+          rects.push(`<rect x="${f(ox-vw)}" y="${f(oy-vh)}" width="${f(2*vw)}" height="${f(2*vh)}" ${fill}/>`)
+
+        } else if (tierIdx === 1) {
+          // Thin horizontal bar
+          const hw = 0.502 * W, hh = 0.0572 * H
+          rects.push(`<rect x="${f(ox-hw)}" y="${f(oy-hh)}" width="${f(2*hw)}" height="${f(2*hh)}" ${fill}/>`)
+
+        } else if (tierIdx === 2) {
+          // Small diamond
+          const dw = 0.208 * W, dh = 0.208 * H
+          rects.push(`<polygon points="${f(ox)},${f(oy-dh)} ${f(ox+dw)},${f(oy)} ${f(ox)},${f(oy+dh)} ${f(ox-dw)},${f(oy)}" ${fill}/>`)
+
+        } else if (tierIdx === 3) {
+          // Wide horizontal bar
+          const hw = 0.502 * W, hh = 0.1515 * H
+          rects.push(`<rect x="${f(ox-hw)}" y="${f(oy-hh)}" width="${f(2*hw)}" height="${f(2*hh)}" ${fill}/>`)
+
+        } else if (tierIdx === 4) {
+          // Large diamond
+          const dw = 0.404 * W, dh = 0.404 * H
+          rects.push(`<polygon points="${f(ox)},${f(oy-dh)} ${f(ox+dw)},${f(oy)} ${f(ox)},${f(oy+dh)} ${f(ox-dw)},${f(oy)}" ${fill}/>`)
+
+        } else if (tierIdx === 5) {
+          // Two diagonal squares
+          const hw = 0.252 * W, hh = 0.252 * H
+          const ocx = 0.25 * W, ocy = 0.25 * H
+          rects.push(`<rect x="${f(ox-ocx-hw)}" y="${f(oy+ocy-hh)}" width="${f(2*hw)}" height="${f(2*hh)}" ${fill}/>`)
+          rects.push(`<rect x="${f(ox+ocx-hw)}" y="${f(oy-ocy-hh)}" width="${f(2*hw)}" height="${f(2*hh)}" ${fill}/>`)
+
         } else {
-          const connectLeft  = getTier(cy, cx - 1) === tier
-          const connectRight = getTier(cy, cx + 1) === tier
+          // Frame (hollow square) — even-odd path
+          const ow = 0.502 * W, oh = 0.502 * H
+          const iw = 0.210 * W, ih = 0.210 * H
+          rects.push(
+            `<path fill-rule="evenodd" d="` +
+            `M ${f(ox-ow)} ${f(oy-oh)} L ${f(ox+ow)} ${f(oy-oh)} L ${f(ox+ow)} ${f(oy+oh)} L ${f(ox-ow)} ${f(oy+oh)} Z ` +
+            `M ${f(ox-iw)} ${f(oy-ih)} L ${f(ox+iw)} ${f(oy-ih)} L ${f(ox+iw)} ${f(oy+ih)} L ${f(ox-iw)} ${f(oy+ih)} Z` +
+            `" ${fill}/>`)
+        }
+      }
+    }
 
-          const gapLeft  = connectLeft  ? 0 : GAP_FRAC
-          const gapRight = connectRight ? 0 : GAP_FRAC
+  } else {
+    // ── Lines ────────────────────────────────────────────────────────────────
+    for (let cy = 0; cy < cellCountY; cy++) {
+      for (let cx = 0; cx < cellCountX; cx++) {
+        const tier = tierGrid[cy][cx]
+        if (tier < 0) continue
 
-          const segX = cx * cellW + gapLeft * cellW
-          const segW = cellW * (1 - gapLeft - gapRight)
-          const capR = lineRenderer.capRoundness * stripH * 0.5
-          const rxLeft  = connectLeft  ? 0 : capR
-          const rxRight = connectRight ? 0 : capR
+        const t = (lineRenderer.blankSpots ? THICK_BLANK[tier] : THICK_FLAT[tier]) * lineRenderer.scale
+        if (t < 0.01) continue
 
-          rects.push(horizSegPath(segX, y, segW, stripH, rxLeft, rxRight) + ` ${fill}/>`)
+        const [r, g, b] = lineRenderer.useColors ? tierColors[tier] : fgColor
+        const fill = `fill="rgb(${r},${g},${b})"`
+
+        if (lineRenderer.vertical) {
+          const stripW = t * cellW
+          const x = cx * cellW + (cellW - stripW) / 2
+
+          if (!lineRenderer.showGaps) {
+            rects.push(`<rect x="${f(x)}" y="${f(cy * cellH)}" width="${f(stripW)}" height="${f(cellH)}" ${fill}/>`)
+          } else {
+            const connectTop    = getTier(cy - 1, cx) === tier
+            const connectBottom = getTier(cy + 1, cx) === tier
+            const gapTop    = connectTop    ? 0 : GAP_FRAC
+            const gapBottom = connectBottom ? 0 : GAP_FRAC
+            const segY = cy * cellH + gapTop * cellH
+            const segH = cellH * (1 - gapTop - gapBottom)
+            const capR = lineRenderer.capRoundness * stripW * 0.5
+            const rxTop    = connectTop    ? 0 : capR
+            const rxBottom = connectBottom ? 0 : capR
+            rects.push(vertSegPath(x, segY, stripW, segH, rxTop, rxBottom) + ` ${fill}/>`)
+          }
+        } else {
+          const stripH = t * cellH
+          const y = cy * cellH + (cellH - stripH) / 2
+
+          if (!lineRenderer.showGaps) {
+            rects.push(`<rect x="${f(cx * cellW)}" y="${f(y)}" width="${f(cellW)}" height="${f(stripH)}" ${fill}/>`)
+          } else {
+            const connectLeft  = getTier(cy, cx - 1) === tier
+            const connectRight = getTier(cy, cx + 1) === tier
+            const gapLeft  = connectLeft  ? 0 : GAP_FRAC
+            const gapRight = connectRight ? 0 : GAP_FRAC
+            const segX = cx * cellW + gapLeft * cellW
+            const segW = cellW * (1 - gapLeft - gapRight)
+            const capR = lineRenderer.capRoundness * stripH * 0.5
+            const rxLeft  = connectLeft  ? 0 : capR
+            const rxRight = connectRight ? 0 : capR
+            rects.push(horizSegPath(segX, y, segW, stripH, rxLeft, rxRight) + ` ${fill}/>`)
+          }
         }
       }
     }
   }
 
-  // ── 5. Serialise and download ─────────────────────────────────────────────
+  // ── 6. Serialise ──────────────────────────────────────────────────────────
   const svg = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
