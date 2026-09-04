@@ -124,7 +124,7 @@ export const COLOR_PRESETS = [
       lineOne: '#24207C',
       lineTwo: '#3C8AFF',
       lineThree: '#7575FF',
-      lineFour: '#7575FF',
+      lineFour: '#FFFFFF',
     },
     lineRenderer: { invert: true },
   },
