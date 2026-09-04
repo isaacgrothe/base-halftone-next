@@ -287,24 +287,57 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
 
   } else {
     // ── Lines ────────────────────────────────────────────────────────────────
-    for (let cy = 0; cy < cellCountY; cy++) {
-      for (let cx = 0; cx < cellCountX; cx++) {
-        const tier = tierGrid[cy][cx]
-        if (tier < 0) continue
+    if (!lineRenderer.showGaps) {
+      // Merge consecutive same-tier cells into single continuous rects
+      if (lineRenderer.vertical) {
+        for (let cx = 0; cx < cellCountX; cx++) {
+          let runStart = -1, runTier = -2
+          const emitRun = (cyEnd: number) => {
+            if (runStart < 0 || runTier < 0) return
+            const t = (lineRenderer.blankSpots ? THICK_BLANK[runTier] : THICK_FLAT[runTier]) * lineRenderer.scale
+            if (t < 0.01) return
+            const [r, g, b] = lineRenderer.useColors ? tierColors[runTier] : fgColor
+            const stripW = t * cellW
+            const x = cx * cellW + (cellW - stripW) / 2
+            rects.push(`<rect x="${f(x)}" y="${f(runStart * cellH)}" width="${f(stripW)}" height="${f((cyEnd - runStart) * cellH)}" fill="rgb(${r},${g},${b})"/>`)
+          }
+          for (let cy = 0; cy <= cellCountY; cy++) {
+            const tier = cy < cellCountY ? tierGrid[cy][cx] : -99
+            if (tier !== runTier) { emitRun(cy); runTier = tier; runStart = tier >= 0 ? cy : -1 }
+          }
+        }
+      } else {
+        for (let cy = 0; cy < cellCountY; cy++) {
+          let runStart = -1, runTier = -2
+          const emitRun = (cxEnd: number) => {
+            if (runStart < 0 || runTier < 0) return
+            const t = (lineRenderer.blankSpots ? THICK_BLANK[runTier] : THICK_FLAT[runTier]) * lineRenderer.scale
+            if (t < 0.01) return
+            const [r, g, b] = lineRenderer.useColors ? tierColors[runTier] : fgColor
+            const stripH = t * cellH
+            const y = cy * cellH + (cellH - stripH) / 2
+            rects.push(`<rect x="${f(runStart * cellW)}" y="${f(y)}" width="${f((cxEnd - runStart) * cellW)}" height="${f(stripH)}" fill="rgb(${r},${g},${b})"/>`)
+          }
+          for (let cx = 0; cx <= cellCountX; cx++) {
+            const tier = cx < cellCountX ? tierGrid[cy][cx] : -99
+            if (tier !== runTier) { emitRun(cx); runTier = tier; runStart = tier >= 0 ? cx : -1 }
+          }
+        }
+      }
+    } else {
+      // showGaps: per-cell segments with gap/cap logic
+      for (let cy = 0; cy < cellCountY; cy++) {
+        for (let cx = 0; cx < cellCountX; cx++) {
+          const tier = tierGrid[cy][cx]
+          if (tier < 0) continue
+          const t = (lineRenderer.blankSpots ? THICK_BLANK[tier] : THICK_FLAT[tier]) * lineRenderer.scale
+          if (t < 0.01) continue
+          const [r, g, b] = lineRenderer.useColors ? tierColors[tier] : fgColor
+          const fill = `fill="rgb(${r},${g},${b})"`
 
-        const t = (lineRenderer.blankSpots ? THICK_BLANK[tier] : THICK_FLAT[tier]) * lineRenderer.scale
-        if (t < 0.01) continue
-
-        const [r, g, b] = lineRenderer.useColors ? tierColors[tier] : fgColor
-        const fill = `fill="rgb(${r},${g},${b})"`
-
-        if (lineRenderer.vertical) {
-          const stripW = t * cellW
-          const x = cx * cellW + (cellW - stripW) / 2
-
-          if (!lineRenderer.showGaps) {
-            rects.push(`<rect x="${f(x)}" y="${f(cy * cellH)}" width="${f(stripW)}" height="${f(cellH)}" ${fill}/>`)
-          } else {
+          if (lineRenderer.vertical) {
+            const stripW = t * cellW
+            const x = cx * cellW + (cellW - stripW) / 2
             const connectTop    = getTier(cy - 1, cx) === tier
             const connectBottom = getTier(cy + 1, cx) === tier
             const gapTop    = connectTop    ? 0 : GAP_FRAC
@@ -312,17 +345,10 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
             const segY = cy * cellH + gapTop * cellH
             const segH = cellH * (1 - gapTop - gapBottom)
             const capR = lineRenderer.capRoundness * stripW * 0.5
-            const rxTop    = connectTop    ? 0 : capR
-            const rxBottom = connectBottom ? 0 : capR
-            rects.push(vertSegPath(x, segY, stripW, segH, rxTop, rxBottom) + ` ${fill}/>`)
-          }
-        } else {
-          const stripH = t * cellH
-          const y = cy * cellH + (cellH - stripH) / 2
-
-          if (!lineRenderer.showGaps) {
-            rects.push(`<rect x="${f(cx * cellW)}" y="${f(y)}" width="${f(cellW)}" height="${f(stripH)}" ${fill}/>`)
+            rects.push(vertSegPath(x, segY, stripW, segH, connectTop ? 0 : capR, connectBottom ? 0 : capR) + ` ${fill}/>`)
           } else {
+            const stripH = t * cellH
+            const y = cy * cellH + (cellH - stripH) / 2
             const connectLeft  = getTier(cy, cx - 1) === tier
             const connectRight = getTier(cy, cx + 1) === tier
             const gapLeft  = connectLeft  ? 0 : GAP_FRAC
@@ -330,9 +356,7 @@ export async function exportSvg(state: AppState, canvasW: number, canvasH: numbe
             const segX = cx * cellW + gapLeft * cellW
             const segW = cellW * (1 - gapLeft - gapRight)
             const capR = lineRenderer.capRoundness * stripH * 0.5
-            const rxLeft  = connectLeft  ? 0 : capR
-            const rxRight = connectRight ? 0 : capR
-            rects.push(horizSegPath(segX, y, segW, stripH, rxLeft, rxRight) + ` ${fill}/>`)
+            rects.push(horizSegPath(segX, y, segW, stripH, connectLeft ? 0 : capR, connectRight ? 0 : capR) + ` ${fill}/>`)
           }
         }
       }
