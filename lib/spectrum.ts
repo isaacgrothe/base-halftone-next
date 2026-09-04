@@ -121,7 +121,7 @@ export const COLOR_PRESETS = [
     palette: {
       backgroundColor: '#000000',
       foregroundColor: '#FFFFFF',
-      lineOne: '#24207C',
+      lineOne: '#0000FF',
       lineTwo: '#3C8AFF',
       lineThree: '#7575FF',
       lineFour: '#FFFFFF',
