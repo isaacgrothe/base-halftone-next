@@ -122,7 +122,7 @@ export const COLOR_PRESETS = [
       backgroundColor: '#000000',
       foregroundColor: '#FFFFFF',
       lineOne: '#0000FF',
-      lineTwo: '#266EFF',
+      lineTwo: '#3C8AFF',
       lineThree: '#7575FF',
       lineFour: '#FFFFFF',
     },
