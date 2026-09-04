@@ -120,7 +120,7 @@ export const COLOR_PRESETS = [
     isDark: true,
     palette: {
       backgroundColor: '#000000',
-      foregroundColor: '#7575FF',
+      foregroundColor: '#FFFFFF',
       lineOne: '#24207C',
       lineTwo: '#3C8AFF',
       lineThree: '#7575FF',
